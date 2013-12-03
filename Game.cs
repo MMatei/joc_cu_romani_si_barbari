@@ -210,7 +210,7 @@ namespace joc_cu_romani_si_barbari
                 endY = provinces[40].endY;
                 Thread t = new Thread(new ThreadStart(run));
                 t.Start();*/
-                nations[3].armies[0].borderStance = Army.BORDER_STANCE_ANNIHILATE;
+                nations[3].armies[0].borderStance = Army.ANNIHILATE;
                 nations[3].armies[0].goTo(provinces[11]);
             }
             // Allows the game to exit
@@ -236,6 +236,8 @@ namespace joc_cu_romani_si_barbari
                             if (army.nextProvIsFriendly())
                             {//the border is crossed efortlessly
                                 army.state = Army.IN_FRIENDLY_PROVINCE;
+                                army.crrtProv.armies.Remove(army);
+                                army.nextProv.armies.Add(army);
                                 army.crrtProv = army.nextProv;
                                 army.iconLocation.X = army.crrtProv.armyX;
                                 army.iconLocation.Y = army.crrtProv.armyY;
@@ -244,6 +246,8 @@ namespace joc_cu_romani_si_barbari
                             if (!army.targetBorder.hasDefenders())
                             {//the border is crossed efortlessly
                                 army.state = Army.IN_ENEMY_PROVINCE;
+                                army.crrtProv.armies.Remove(army);
+                                army.nextProv.armies.Add(army);
                                 army.crrtProv = army.nextProv;
                                 army.iconLocation.X = army.crrtProv.armyX;
                                 army.iconLocation.Y = army.crrtProv.armyY;
@@ -263,6 +267,8 @@ namespace joc_cu_romani_si_barbari
                                 if (rand.NextDouble() * 100 < ch)//the border is breached
                                 {
                                     army.state = Army.IN_ENEMY_PROVINCE;
+                                    army.crrtProv.armies.Remove(army);
+                                    army.nextProv.armies.Add(army);
                                     army.crrtProv = army.nextProv;
                                     army.iconLocation.X = army.crrtProv.armyX;
                                     army.iconLocation.Y = army.crrtProv.armyY;
