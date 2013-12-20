@@ -87,5 +87,15 @@ namespace joc_cu_romani_si_barbari
 
             return _transform;
         }
+
+        public Vector2 WorldToScreen(Vector2 worldPosition)
+        {
+            return Vector2.Transform(worldPosition, this.GetTransformation());
+        }
+
+        public Vector2 ScreenToWorld(Vector2 screenPosition)
+        {
+            return Vector2.Transform(screenPosition, Matrix.Invert(this.GetTransformation()));
+        }
     }
 }
