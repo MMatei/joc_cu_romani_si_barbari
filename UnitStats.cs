@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace joc_cu_romani_si_barbari
 {
@@ -30,6 +31,26 @@ namespace joc_cu_romani_si_barbari
             this.recruitCost = recruitCost;
             this.recruitTime = recruitTime;
             this.upkeep = upkeep;
+        }
+
+        internal static void readUnitStats()
+        {
+            BinaryReader file = new BinaryReader(new FileStream("units.bin", FileMode.Open));
+            //mai intai citim nr de unitati
+            int n = file.ReadInt32();
+            Game.unitStats = new UnitStats[n];
+            for (int i = 0; i < n; i++)
+            {
+                String s = "";
+                char c = (char)file.ReadByte();
+                while (c != 0)//numele se termina cu un octet 0
+                {//nu avem de ales decat sa citim octet cu octet
+                    s += c;
+                    c = (char)file.ReadByte();
+                }
+                Game.unitStats[i] = new UnitStats(s, file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadInt32(), file.ReadInt32(), file.ReadSingle());
+            }
+            file.Close();
         }
     }
 }

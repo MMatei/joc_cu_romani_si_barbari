@@ -86,6 +86,7 @@ namespace joc_cu_romani_si_barbari.Utilities
         public unsafe static void updateMap(byte[,] mapMatrix, int startX, int startY, int endX, int endY,
             Texture2D prov00, Texture2D prov01, Texture2D prov02, Texture2D prov10, Texture2D prov11, Texture2D prov12)
         {
+            float updateDark = 0.65f;
             //conditiile se asigura ca intram sa modificam doar texturile strict necesare
             if (startX < 1466 && startY < 1363)
             {
@@ -101,9 +102,21 @@ namespace joc_cu_romani_si_barbari.Utilities
                     for (int x = startX; x < endW; x++)
                     {
                         Color c = Game.provinces[mapMatrix[y,x]].owner.color;
-                        b[p++] = c.R;
-                        b[p++] = c.G;
-                        b[p++] = c.B;
+
+                        if (Game.provinces[mapMatrix[y, x]].isSelected == true)
+                        {
+
+                            b[p++] = (byte)(c.R * updateDark);
+                            b[p++] = (byte)(c.G * updateDark);
+                            b[p++] = (byte)(c.B * updateDark);
+                        }
+                        else if (Game.provinces[mapMatrix[y, x]].isSelected == false)
+                        {
+                            b[p++] = c.R;
+                            b[p++] = c.G;
+                            b[p++] = c.B;
+                        }
+                        
                         p++;//Alpha remains unchanged
                     }
                 }
@@ -124,9 +137,19 @@ namespace joc_cu_romani_si_barbari.Utilities
                     for (int x = startW; x < endW; x++)
                     {
                         Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        b[p++] = c.R;
-                        b[p++] = c.G;
-                        b[p++] = c.B;
+                        if (Game.provinces[mapMatrix[y, x]].isSelected)
+                        {
+
+                            b[p++] = (byte)(c.R * updateDark);
+                            b[p++] = (byte)(c.G * updateDark);
+                            b[p++] = (byte)(c.B * updateDark);
+                        }
+                        else
+                        {
+                            b[p++] = c.R;
+                            b[p++] = c.G;
+                            b[p++] = c.B;
+                        }
                         p++;//Alpha remains unchanged
                     }
                 }
@@ -146,9 +169,19 @@ namespace joc_cu_romani_si_barbari.Utilities
                     for (int x = startW; x < endX; x++)
                     {
                         Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        b[p++] = c.R;
-                        b[p++] = c.G;
-                        b[p++] = c.B;
+                        if (Game.provinces[mapMatrix[y, x]].isSelected)
+                        {
+
+                            b[p++] = (byte)(c.R * updateDark);
+                            b[p++] = (byte)(c.G * updateDark);
+                            b[p++] = (byte)(c.B * updateDark);
+                        }
+                        else
+                        {
+                            b[p++] = c.R;
+                            b[p++] = c.G;
+                            b[p++] = c.B;
+                        }
                         p++;//Alpha remains unchanged
                     }
                 }
@@ -168,9 +201,19 @@ namespace joc_cu_romani_si_barbari.Utilities
                     for (int x = startX; x < endW; x++)
                     {
                         Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        b[p++] = c.R;
-                        b[p++] = c.G;
-                        b[p++] = c.B;
+                        if (Game.provinces[mapMatrix[y, x]].isSelected)
+                        {
+
+                            b[p++] = (byte)(c.R * updateDark);
+                            b[p++] = (byte)(c.G * updateDark);
+                            b[p++] = (byte)(c.B * updateDark);
+                        }
+                        else
+                        {
+                            b[p++] = c.R;
+                            b[p++] = c.G;
+                            b[p++] = c.B;
+                        }
                         p++;//Alpha remains unchanged
                     }
                 }
@@ -191,9 +234,19 @@ namespace joc_cu_romani_si_barbari.Utilities
                     for (int x = startW; x < endW; x++)
                     {
                         Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        b[p++] = c.R;
-                        b[p++] = c.G;
-                        b[p++] = c.B;
+                        if (Game.provinces[mapMatrix[y, x]].isSelected)
+                        {
+
+                            b[p++] = (byte)(c.R * updateDark);
+                            b[p++] = (byte)(c.G * updateDark);
+                            b[p++] = (byte)(c.B * updateDark);
+                        }
+                        else
+                        {
+                            b[p++] = c.R;
+                            b[p++] = c.G;
+                            b[p++] = c.B;
+                        }
                         p++;//Alpha remains unchanged
                     }
                 }
@@ -213,9 +266,19 @@ namespace joc_cu_romani_si_barbari.Utilities
                     for (int x = startW; x < endX; x++)
                     {
                         Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        b[p++] = c.R;
-                        b[p++] = c.G;
-                        b[p++] = c.B;
+                        if (Game.provinces[mapMatrix[y, x]].isSelected)
+                        {
+
+                            b[p++] = (byte)(c.R * updateDark);
+                            b[p++] = (byte)(c.G * updateDark);
+                            b[p++] = (byte)(c.B * updateDark);
+                        }
+                        else
+                        {
+                            b[p++] = c.R;
+                            b[p++] = c.G;
+                            b[p++] = c.B;
+                        }
                         p++;//Alpha remains unchanged
                     }
                 }

@@ -28,9 +28,11 @@ namespace joc_cu_romani_si_barbari
         // textures
         private Texture2D map00, map01, map02, map10, map11, map12;
         private Texture2D prov00, prov01, prov02, prov10, prov11, prov12;
-        private Rectangle rect00, rect01, rect02, rect10, rect11, rect12;
+        private Rectangle rect00, rect01, rect02, rect10, rect11, rect12, ui1;
         private Texture2D uiBackground;//the texture which will serve as background for all UI elements
         private Rectangle uiStatusBarRect;//the portion of the texture used for the status bar
+        //private Texture2D uiProvinceBarBackground;
+        //private Rectangle uiProvinceBarRect;
         private Texture2D coin;//money gfx
         private SpriteFont font;
 
@@ -43,6 +45,7 @@ namespace joc_cu_romani_si_barbari
         private float previousScroll = 0f;
         private int startX, startY, endX, endY;//needed when updating a province's color
         public bool REMOVE = true;// TO BE REMOVED
+        public bool smth = true;// TO BE REMOVED
         private TimeSpan timeBetweenDays = new TimeSpan(0);//the timespan that must elapse before we switch over to the next day
         private static Utilities.Date date;//aici tinem minte data curenta
         // game variables - aici tinem vectori cu datele care trebuie tinute minte doar o data, intr-un singur loc
@@ -50,10 +53,12 @@ namespace joc_cu_romani_si_barbari
         internal static Nation[] nations;
         internal static DefenseBuilding[] defBuildings;
         internal static UnitStats[] unitStats;
+        internal static Tactic[] meleeTactics, skirmishTactics;
         internal static byte[,] mapMatrix;// aici stocam info despre carei provincii ii apartine pixelul i, j
         //ne intereseaza atat la desenarea provinciilor, cat si pentru a determina pe ce provincie am dat click
         internal static byte player = 1;//index in vectorul de natiuni (momentan doar WRE e jucabil)
         private Random rand = new Random();
+        public MouseState mouseStateCurrent, mouseStatePrevious;
 
         public Game()
         {
@@ -64,6 +69,8 @@ namespace joc_cu_romani_si_barbari
             this.graphics.IsFullScreen = true;
             scrollMarginRight = screenW - 40;
             scrollMarginDown = screenH - 40;
+            mouseStatePrevious = Mouse.GetState();
+            //lastSelectedProvince = null;
         }
 
         protected override void OnActivated(object sender, EventArgs args)
@@ -99,21 +106,30 @@ namespace joc_cu_romani_si_barbari
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
             defaultViewport = GraphicsDevice.Viewport;
+
+            //put up a loading screen
+            GraphicsDevice.Clear(Color.CornflowerBlue);
+            //spriteBatch.Begin();
+            //spriteBatch.Draw(Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/loading screen.png", FileMode.Open)), new Rectangle(0, 0, screenW, screenH), Color.White);
+            //spriteBatch.End();
             
-            readNations();
+            Nation.readNations();
             for(int i=1;i<nations.Length;i++)// load army icons as textures (we start from 1 to skip Sea)
                 nations[i].armyIcon = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/army icons/" + nations[i].name + " icon.png", FileMode.Open));
-            readProvinces();
-            readDefBuildings();
-            readUnitStats();
+            Province.readProvinces();
+            DefenseBuilding.readDefBuildings();
+            UnitStats.readUnitStats();
+            Tactic.readMeleeTactics();
+            Tactic.readSkirmishTactics();
             readScenario();
-
+            GraphicsDevice.Clear(Color.CornflowerBlue);
             map00 = Content.Load<Texture2D>("00");
             map01 = Content.Load<Texture2D>("01");
             map02 = Content.Load<Texture2D>("02");
             map10 = Content.Load<Texture2D>("10");
             map11 = Content.Load<Texture2D>("11");
             map12 = Content.Load<Texture2D>("12");
+            //uiProvinceBarBackground = Content.Load<Texture2D>("scroll.png");
             rect00 = new Rectangle(0, 0, map00.Width, map00.Height);
             rect01 = new Rectangle(map00.Width, 0, map01.Width, map01.Height);
             rect02 = new Rectangle(map00.Width + map01.Width, 0, map02.Width, map02.Height);
@@ -121,7 +137,8 @@ namespace joc_cu_romani_si_barbari
             rect11 = new Rectangle(map10.Width, map01.Height, map11.Width, map11.Height);
             rect12 = new Rectangle(map10.Width + map11.Width, map02.Height, map12.Width, map12.Height);
             uiBackground = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/fish_mosaic.jpg", FileMode.Open));
-            uiStatusBarRect = new Rectangle(92, 92, 300, 50);
+            uiStatusBarRect = new Rectangle(0, 0, 300, 50);
+            //uiProvinceBarRect = new Rectangle(0, 0, screenW, (int)screenH/5);
             coin = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/coin.png", FileMode.Open));
             font = Content.Load<SpriteFont>("SpriteFont1");
 
@@ -165,30 +182,57 @@ namespace joc_cu_romani_si_barbari
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            
+            
+
             if (!isActive) return;//the game doesn't respond to input
             KeyboardState key = Keyboard.GetState();
-            MouseState mouse = Mouse.GetState();
+            
             Vector2 movement = Vector2.Zero;
             Viewport vp = GraphicsDevice.Viewport;
+
+            mouseStateCurrent = Mouse.GetState();
+            if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
+            {
+
+
+                Utilities.ImageProcessor.updateMap(mapMatrix, startX, startY, endX, endY, prov00, prov01, prov02, prov10, prov11, prov12);
+                Vector2 q1 = new Vector2();
+                Vector2 q2 = new Vector2();
+                q1.X = mouseStateCurrent.X;
+                q1.Y = mouseStateCurrent.Y;
+                q2 = Camera.ScreenToWorld(q1);
+                Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];
+                p.isSelected = true;
+                Utilities.ImageProcessor.updateMap(mapMatrix, p.startX, p.startY, p.endX, p.endY, prov00, prov01, prov02, prov10, prov11, prov12);
+                p.isSelected = false;
+                startX = p.startX;
+                startY = p.startY; 
+                endX = p.endX; 
+                endY = p.endY;
+               
+            }
+            mouseStatePrevious = mouseStateCurrent;
+
             
             // Adjust zoom if the mouse wheel has moved
-            if (mouse.ScrollWheelValue > previousScroll)
+            if (mouseStateCurrent.ScrollWheelValue > previousScroll)
             {
                 Camera.Zoom += 0.1f;
             }
-            else if (mouse.ScrollWheelValue < previousScroll)
+            else if (mouseStateCurrent.ScrollWheelValue < previousScroll)
                  { 
                     Camera.Zoom -= 0.1f; 
                  }
-            previousScroll = mouse.ScrollWheelValue;
+            previousScroll = mouseStateCurrent.ScrollWheelValue;
             // Move the camera when the pointer is near the edges
-            if (mouse.X < 40)
+            if (mouseStateCurrent.X < 40)
                 movement.X--;
-            if (mouse.X > scrollMarginRight)
+            if (mouseStateCurrent.X > scrollMarginRight)
                 movement.X++;
-            if (mouse.Y < 40)
+            if (mouseStateCurrent.Y < 40)
                 movement.Y--;
-            if (mouse.Y > scrollMarginDown)
+            if (mouseStateCurrent.Y > scrollMarginDown)
                 movement.Y++;
             
             // Move the camera when the arrow keys are pressed
@@ -203,15 +247,26 @@ namespace joc_cu_romani_si_barbari
             if (REMOVE && key.IsKeyDown(Keys.Space))
             {
                 REMOVE = false;
-                /*provinces[40].owner = nations[1];
+                provinces[40].owner = nations[1];
                 startX = provinces[40].startX;
                 startY = provinces[40].startY;
                 endX = provinces[40].endX;
                 endY = provinces[40].endY;
                 Thread t = new Thread(new ThreadStart(run));
+<<<<<<< HEAD
+                t.Start();
+                //nations[3].armies[0].borderStance = Army.ANNIHILATE;
+                //nations[3].armies[0].goTo(provinces[11]);
+=======
                 t.Start();*/
-                nations[3].armies[0].borderStance = Army.BORDER_STANCE_ANNIHILATE;
-                nations[3].armies[0].goTo(provinces[11]);
+                nations[1].armies[0].goTo(provinces[6]);
+<<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
+=======
+>>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
+=======
+>>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
             }
             // Allows the game to exit
             if (key.IsKeyDown(Keys.Escape))
@@ -231,51 +286,33 @@ namespace joc_cu_romani_si_barbari
                 {
                     foreach (Army army in nation.armies)
                     {
-                        if (army.state == Army.ON_BORDER)
+                        if (army.isOnBorder)
                         {
-                            if (army.nextProvIsFriendly())
+                            if (army.nextProvIsFriendly() || !army.targetBorder.hasDefenders())
                             {//the border is crossed efortlessly
-                                army.state = Army.IN_FRIENDLY_PROVINCE;
+                                army.isOnBorder = false;
                                 army.crrtProv = army.nextProv;
                                 army.iconLocation.X = army.crrtProv.armyX;
                                 army.iconLocation.Y = army.crrtProv.armyY;
-                                continue;
-                            }
-                            if (!army.targetBorder.hasDefenders())
-                            {//the border is crossed efortlessly
-                                army.state = Army.IN_ENEMY_PROVINCE;
-                                army.crrtProv = army.nextProv;
-                                army.iconLocation.X = army.crrtProv.armyX;
-                                army.iconLocation.Y = army.crrtProv.armyY;
-                                continue;
                             }
                             else
                             {//we must breach the border
                                 Neighbor border = army.targetBorder;
-                                double dmg1 = border.getDamage() * army.borderStance;//the invader's stance determines how much the two forces are going to battle
-                                double dmg2 = army.getAssaultDamage(border.hasDefenses()) * army.borderStance;
-                                //we calculate coverage before we deal damage
-                                double ch = Math.Min(95, Math.Max(5, ((1 - army.borderStance) * 20 - border.getDefenseRating() * border.coverage()) * 5));
-                                border.eatDamage(dmg2);
-                                army.eatAssaultDamage(dmg1, border.hasDefenses());
-                                Console.WriteLine(army.borderStance + " " + ((1 - army.borderStance) * 20 - border.getDefenseRating() * border.coverage()) * 5);
-                                //Console.WriteLine(dmg1+" "+dmg2+" "+ch);
-                                if (rand.NextDouble() * 100 < ch)//the border is breached
+                                double dmg1 = border.getDamage();
+                                double dmg2 = army.getAssaultDamage(border.hasDefenses());
+                                border.eatDamage(dmg1);
+                                army.eatAssaultDamage(dmg2, border.hasDefenses());
+                                double ch = Math.Min(95, Math.Min(5, ((1-army.borderStance)*20 - border.getDefenseRating() * border.coverage()) * 5));
+                                Console.WriteLine(dmg1+" "+dmg2+" "+ch);
+                                if (rand.Next(100) < ch)//the border is breached
                                 {
-                                    army.state = Army.IN_ENEMY_PROVINCE;
+                                    army.isOnBorder = false;
                                     army.crrtProv = army.nextProv;
                                     army.iconLocation.X = army.crrtProv.armyX;
                                     army.iconLocation.Y = army.crrtProv.armyY;
                                 }
                             }
-                            continue;//armata nu se poate afla in una din starile ulterioare
                         }
-                        if (army.state == Army.IN_ENEMY_PROVINCE)
-                        {
-                            
-                            continue;
-                        }
-                        //daca am ajuns aici => army.state == Army.IN_FRIENDLY_PROVINCE
                         if (army.nextProv != army.crrtProv)//inseamna ca ma duc undeva
                         {
                             if (army.distToNext == 0)//we have arrived at the border with the next province
@@ -283,14 +320,7 @@ namespace joc_cu_romani_si_barbari
                                 //army.crrtProv = army.nextProv;
                                 army.iconLocation.X = army.targetBorder.armyX;
                                 army.iconLocation.Y = army.targetBorder.armyY;
-                                //the target border becomes the enemy's side of the border
-                                foreach (Neighbor neigh in army.nextProv.neighbors)
-                                    if (neigh.p == army.crrtProv)
-                                    {
-                                        army.targetBorder = neigh;
-                                        break;
-                                    }
-                                army.state = Army.ON_BORDER;
+                                army.isOnBorder = true;
                             }
                             army.march();
                         }
@@ -337,15 +367,19 @@ namespace joc_cu_romani_si_barbari
                 }
             }
             //draw the status bar
-            spriteBatch.Draw(uiBackground, new Rectangle((int)(Camera.Pos.X+screenW/2-300), (int)(Camera.Pos.Y-screenH/2), 300, 50), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
-            spriteBatch.Draw(coin, new Rectangle((int)(Camera.Pos.X + screenW / 2 - 290), (int)(Camera.Pos.Y - screenH / 2 + 10), 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(font, nations[player].money + "", new Vector2(Camera.Pos.X + screenW / 2 - 250, Camera.Pos.Y - screenH / 2 + 10), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(font, date.ToString(), new Vector2(Camera.Pos.X + screenW / 2 - 100, Camera.Pos.Y - screenH / 2 + 10), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+
+            spriteBatch.Draw(uiBackground, new Rectangle((int)(Camera.Pos.X + (screenW / 2  - 300)/Camera.Zoom), (int)(Camera.Pos.Y - (screenH / 2)/Camera.Zoom), (int)(300 / Camera.Zoom), (int)(50 / Camera.Zoom)), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
+            //spriteBatch.Draw(uiProvinceBarBackground, new Rectangle((int)(Camera.Pos.X - screenW/ (2 * Camera.Zoom)), (int)(Camera.Pos.Y + (screenH * 0.2) * Camera.Zoom), (int)(screenW / Camera.Zoom), (int)(screenW / (5 * Camera.Zoom))), uiProvinceBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
+            spriteBatch.Draw(coin, new Rectangle((int)(Camera.Pos.X + (screenW / 2 - 290)/Camera.Zoom), (int)(Camera.Pos.Y - (screenH / 2 - 10)/Camera.Zoom ), (int)(30 /Camera.Zoom ), (int)(30/Camera.Zoom)), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, nations[player].money + "", new Vector2(Camera.Pos.X + (screenW / 2 - 250) / Camera.Zoom, Camera.Pos.Y - (screenH / 2 - 10) / Camera.Zoom), Color.White, 0.0f, Vector2.Zero, 1.0f / Camera.Zoom, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, date.ToString(), new Vector2(Camera.Pos.X + (screenW / 2 - 100) / Camera.Zoom, Camera.Pos.Y - (screenH / 2 - 10) / Camera.Zoom), Color.White, 0.0f, Vector2.Zero, 1.0f / Camera.Zoom, SpriteEffects.None, 1.0f);
             
             spriteBatch.End();
         }
 
         // from here - content loading functions called just once in the loadContent phase
+<<<<<<< HEAD
+=======
         private static void readNations(){
             int n;
             StreamReader file = new System.IO.StreamReader("nations.txt");
@@ -376,10 +410,6 @@ namespace joc_cu_romani_si_barbari
                 s = file.ReadLine();
             n = Convert.ToInt32(s);//get nr of provinces
             provinces = new Province[n];
-            //in descrierea unei provincii pot aparea referinte catre provincii nedefinite inca
-            //astfel, creeam de la inceput toate provinciile (albeit empty) ca sa putem pune referinte valide
-            for (int i = 0; i < n; i++)
-                provinces[i] = new Province();
             for(int i=0;i<n;i++){
                 s = file.ReadLine();
                 while (s.StartsWith("#"))
@@ -389,7 +419,7 @@ namespace joc_cu_romani_si_barbari
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     String[] word = s.Split(';');
-                    provinces[i].setProvince(Convert.ToInt32(word[0]), word[1], Convert.ToInt32(word[2]), Convert.ToInt32(word[3]), Convert.ToInt32(word[4]), Convert.ToInt32(word[5]), Convert.ToInt32(word[6]), Convert.ToInt32(word[7]));
+                    provinces[i] = new Province(Convert.ToInt32(word[0]), word[1], Convert.ToInt32(word[2]), Convert.ToInt32(word[3]), Convert.ToInt32(word[4]), Convert.ToInt32(word[5]), Convert.ToInt32(word[6]), Convert.ToInt32(word[7]));
                     s = file.ReadLine();
                     while(!s.StartsWith("}")){//pana se termina descrierea, citim despre vecini
                         while (s.StartsWith("#"))
@@ -422,24 +452,23 @@ namespace joc_cu_romani_si_barbari
         }
 
         private static void readUnitStats(){
-            BinaryReader file = new BinaryReader(new FileStream("units.bin", FileMode.Open));
-            //mai intai citim nr de unitati
-            int n = file.ReadInt32();
+            StreamReader file = new System.IO.StreamReader("units.txt");
+            String s = file.ReadLine();
+            while (s.StartsWith("#"))
+                s = file.ReadLine();
+            int n = Convert.ToInt32(s);
             unitStats = new UnitStats[n];
-            for (int i = 0; i < n; i++)
-            {
-                String s = "";
-                char c = (char)file.ReadByte();
-                while (c != 0)//numele se termina cu un octet 0
-                {//nu avem de ales decat sa citim octet cu octet
-                    s += c;
-                    c = (char)file.ReadByte();
-                }
-                unitStats[i] = new UnitStats(s, file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadByte(), file.ReadInt32(), file.ReadInt32(), file.ReadSingle());
+            for(int i=0;i<n;i++){
+                s = file.ReadLine();
+                while (s.StartsWith("#"))
+                    s = file.ReadLine();
+                String[] word = s.Split(';');
+                unitStats[i] = new UnitStats(word[0].Replace('_',' '), Convert.ToByte(word[1]), Convert.ToByte(word[2]), Convert.ToByte(word[3]), Convert.ToByte(word[4]), Convert.ToByte(word[5]), Convert.ToByte(word[6]), Convert.ToInt32(word[7]), Convert.ToInt32(word[8]), (float)Convert.ToDouble(word[9]));
             }
             file.Close();
         }
 
+>>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
         private static void readScenario(){
             char[] separator = {' ', ';'};
             StreamReader file = new System.IO.StreamReader("scenario.txt");
@@ -459,7 +488,7 @@ namespace joc_cu_romani_si_barbari
                     while(s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
-                    provinces[i].prosperity = (float)Convert.ToDouble(word[0]);
+                    provinces[i].prosperity = Convert.ToSingle(word[0]);
                     provinces[i].owner = nations[Convert.ToInt32(word[1])];
                     //poate urma descrierea unei armate
                     s = file.ReadLine();

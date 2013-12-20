@@ -40,7 +40,7 @@ namespace joc_cu_romani_si_barbari.Utilities
             return (other.day == day) && (other.month == month) && (other.year == year);
         }
     
-        public String ToString(){
+        public override String ToString(){
             if(month < 10)
                 return day+".0"+month+"."+year;
             else
