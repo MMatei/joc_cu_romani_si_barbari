@@ -262,6 +262,9 @@ namespace joc_cu_romani_si_barbari
                 nations[1].armies[0].goTo(provinces[6]);
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
+=======
 >>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
 =======
 >>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
