@@ -28,7 +28,7 @@ namespace joc_cu_romani_si_barbari
         // textures
         private Texture2D map00, map01, map02, map10, map11, map12;
         private Texture2D prov00, prov01, prov02, prov10, prov11, prov12;
-        private Rectangle rect00, rect01, rect02, rect10, rect11, rect12, ui1;
+        private Rectangle rect00, rect01, rect02, rect10, rect11, rect12;
         private Texture2D uiBackground;//the texture which will serve as background for all UI elements
         private Rectangle uiStatusBarRect;//the portion of the texture used for the status bar
         //private Texture2D uiProvinceBarBackground;
@@ -41,7 +41,7 @@ namespace joc_cu_romani_si_barbari
         private int screenH, screenW, scrollMarginRight, scrollMarginDown;//vezi functia de scroll
         private Vector2 spritePosition = Vector2.Zero;
         private Vector2 spriteSpeed = new Vector2(50.0f, 50.0f);
-        private _2DCamera Camera = new _2DCamera(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height, 4400, 2727, 1f);
+        private _2DCamera Camera;
         private float previousScroll = 0f;
         private int startX, startY, endX, endY;//needed when updating a province's color
         public bool REMOVE = true;// TO BE REMOVED
@@ -66,6 +66,7 @@ namespace joc_cu_romani_si_barbari
             Content.RootDirectory = "Content";
             screenW = this.graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
             screenH = this.graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            Camera = new _2DCamera(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height, 4400, 2727, 1f, 0.5f, 1f);
             this.graphics.IsFullScreen = true;
             scrollMarginRight = screenW - 40;
             scrollMarginDown = screenH - 40;
@@ -106,12 +107,6 @@ namespace joc_cu_romani_si_barbari
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
             defaultViewport = GraphicsDevice.Viewport;
-
-            //put up a loading screen
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-            //spriteBatch.Begin();
-            //spriteBatch.Draw(Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/loading screen.png", FileMode.Open)), new Rectangle(0, 0, screenW, screenH), Color.White);
-            //spriteBatch.End();
             
             Nation.readNations();
             for(int i=1;i<nations.Length;i++)// load army icons as textures (we start from 1 to skip Sea)
@@ -137,7 +132,7 @@ namespace joc_cu_romani_si_barbari
             rect11 = new Rectangle(map10.Width, map01.Height, map11.Width, map11.Height);
             rect12 = new Rectangle(map10.Width + map11.Width, map02.Height, map12.Width, map12.Height);
             uiBackground = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/fish_mosaic.jpg", FileMode.Open));
-            uiStatusBarRect = new Rectangle(0, 0, 300, 50);
+            uiStatusBarRect = new Rectangle(100, 100, 300, 50);
             //uiProvinceBarRect = new Rectangle(0, 0, screenW, (int)screenH/5);
             coin = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/coin.png", FileMode.Open));
             font = Content.Load<SpriteFont>("SpriteFont1");
@@ -182,9 +177,6 @@ namespace joc_cu_romani_si_barbari
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            
-            
-
             if (!isActive) return;//the game doesn't respond to input
             KeyboardState key = Keyboard.GetState();
             
@@ -194,8 +186,6 @@ namespace joc_cu_romani_si_barbari
             mouseStateCurrent = Mouse.GetState();
             if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
             {
-
-
                 Utilities.ImageProcessor.updateMap(mapMatrix, startX, startY, endX, endY, prov00, prov01, prov02, prov10, prov11, prov12);
                 Vector2 q1 = new Vector2();
                 Vector2 q2 = new Vector2();
@@ -210,10 +200,8 @@ namespace joc_cu_romani_si_barbari
                 startY = p.startY; 
                 endX = p.endX; 
                 endY = p.endY;
-               
             }
             mouseStatePrevious = mouseStateCurrent;
-
             
             // Adjust zoom if the mouse wheel has moved
             if (mouseStateCurrent.ScrollWheelValue > previousScroll)
@@ -247,29 +235,16 @@ namespace joc_cu_romani_si_barbari
             if (REMOVE && key.IsKeyDown(Keys.Space))
             {
                 REMOVE = false;
-                provinces[40].owner = nations[1];
+                /*provinces[40].owner = nations[1];
                 startX = provinces[40].startX;
                 startY = provinces[40].startY;
                 endX = provinces[40].endX;
                 endY = provinces[40].endY;
                 Thread t = new Thread(new ThreadStart(run));
-<<<<<<< HEAD
-                t.Start();
+                t.Start();*/
                 //nations[3].armies[0].borderStance = Army.ANNIHILATE;
                 //nations[3].armies[0].goTo(provinces[11]);
-=======
-                t.Start();*/
                 nations[1].armies[0].goTo(provinces[6]);
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
-=======
->>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
-=======
->>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
-=======
->>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
             }
             // Allows the game to exit
             if (key.IsKeyDown(Keys.Escape))
@@ -278,14 +253,12 @@ namespace joc_cu_romani_si_barbari
             Camera.Pos += movement * 20;
             musicPlayer.wazzap();//poke, poke
             base.Update(gameTime);
-            //Console.WriteLine(gameTime.ElapsedGameTime);
             timeBetweenDays = timeBetweenDays.Add(gameTime.ElapsedGameTime);
-            //Console.WriteLine(timeBetweenDays);
             if (timeBetweenDays.Seconds >= 5)//do the stuff necessary to pass to the next day
             {
                 timeBetweenDays = new TimeSpan(0);
                 //cycle through each army
-                foreach (Nation nation in nations)
+                /*foreach (Nation nation in nations)
                 {
                     foreach (Army army in nation.armies)
                     {
@@ -328,7 +301,7 @@ namespace joc_cu_romani_si_barbari
                             army.march();
                         }
                     }
-                }
+                }*/
                 date.next();
                 //Console.WriteLine("A day has passed!");
             }
@@ -369,109 +342,20 @@ namespace joc_cu_romani_si_barbari
                     spriteBatch.Draw(nation.armyIcon, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.9f);
                 }
             }
-            //draw the status bar
+            spriteBatch.End();
 
-            spriteBatch.Draw(uiBackground, new Rectangle((int)(Camera.Pos.X + (screenW / 2  - 300)/Camera.Zoom), (int)(Camera.Pos.Y - (screenH / 2)/Camera.Zoom), (int)(300 / Camera.Zoom), (int)(50 / Camera.Zoom)), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
+            //desenam elementele statice in raport cu camera (adica nu sunt afectate de ViewMatrix-ul camerei)
+            spriteBatch.Begin();
             //spriteBatch.Draw(uiProvinceBarBackground, new Rectangle((int)(Camera.Pos.X - screenW/ (2 * Camera.Zoom)), (int)(Camera.Pos.Y + (screenH * 0.2) * Camera.Zoom), (int)(screenW / Camera.Zoom), (int)(screenW / (5 * Camera.Zoom))), uiProvinceBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
-            spriteBatch.Draw(coin, new Rectangle((int)(Camera.Pos.X + (screenW / 2 - 290)/Camera.Zoom), (int)(Camera.Pos.Y - (screenH / 2 - 10)/Camera.Zoom ), (int)(30 /Camera.Zoom ), (int)(30/Camera.Zoom)), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(font, nations[player].money + "", new Vector2(Camera.Pos.X + (screenW / 2 - 250) / Camera.Zoom, Camera.Pos.Y - (screenH / 2 - 10) / Camera.Zoom), Color.White, 0.0f, Vector2.Zero, 1.0f / Camera.Zoom, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(font, date.ToString(), new Vector2(Camera.Pos.X + (screenW / 2 - 100) / Camera.Zoom, Camera.Pos.Y - (screenH / 2 - 10) / Camera.Zoom), Color.White, 0.0f, Vector2.Zero, 1.0f / Camera.Zoom, SpriteEffects.None, 1.0f);
-            
+            spriteBatch.Draw(uiBackground, new Rectangle(screenW - 300, 0, 300, 50), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
+            spriteBatch.Draw(coin, new Rectangle(screenW - 290, 10, 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, nations[player].money + "", new Vector2(screenW - 250, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, date.ToString(), new Vector2(screenW - 100, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+
             spriteBatch.End();
         }
 
         // from here - content loading functions called just once in the loadContent phase
-<<<<<<< HEAD
-=======
-        private static void readNations(){
-            int n;
-            StreamReader file = new System.IO.StreamReader("nations.txt");
-            String s = file.ReadLine();
-            while (s.StartsWith("#"))//while commentary, skip over it
-                s = file.ReadLine();
-            n = Convert.ToInt32(s);//get nr of nations
-            nations = new Nation[n];
-            for(int i=0;i<n;i++){
-                s = file.ReadLine();
-                while (s.StartsWith("#"))
-                    s = file.ReadLine();
-                String[] word = s.Split(';');
-                nations[i] = new Nation(
-                        word[0],//name
-                        System.Drawing.Color.FromArgb(Convert.ToInt32(word[1]), Convert.ToInt32(word[2]), Convert.ToInt32(word[3])),
-                        Convert.ToInt32(word[4])//money
-                        );
-            }
-            file.Close();
-        }
-
-        private static void readProvinces(){
-            int n;
-            StreamReader file = new System.IO.StreamReader("provinces.txt");
-            String s = file.ReadLine();
-            while (s.StartsWith("#"))
-                s = file.ReadLine();
-            n = Convert.ToInt32(s);//get nr of provinces
-            provinces = new Province[n];
-            for(int i=0;i<n;i++){
-                s = file.ReadLine();
-                while (s.StartsWith("#"))
-                    s = file.ReadLine();
-                if(s.EndsWith("{")){//incepe bloc descriere provincie urmatoare
-                    s = file.ReadLine();
-                    while (s.StartsWith("#"))
-                        s = file.ReadLine();
-                    String[] word = s.Split(';');
-                    provinces[i] = new Province(Convert.ToInt32(word[0]), word[1], Convert.ToInt32(word[2]), Convert.ToInt32(word[3]), Convert.ToInt32(word[4]), Convert.ToInt32(word[5]), Convert.ToInt32(word[6]), Convert.ToInt32(word[7]));
-                    s = file.ReadLine();
-                    while(!s.StartsWith("}")){//pana se termina descrierea, citim despre vecini
-                        while (s.StartsWith("#"))
-                            s = file.ReadLine();
-                        if (s.StartsWith("}")) break;
-                        word = s.Split(';');
-                        provinces[i].neighbors.Add(new Neighbor(provinces[Convert.ToInt32(word[0])], Convert.ToInt32(word[1]), Convert.ToInt32(word[2]), Convert.ToInt32(word[3]), Convert.ToInt32(word[4]), Convert.ToInt32(word[5])));
-                        s = file.ReadLine();
-                    }
-                }
-            }
-            file.Close();
-        }
-
-        private static void readDefBuildings(){
-            StreamReader file = new System.IO.StreamReader("defenseBuildings.txt");
-            String s = file.ReadLine();
-            while (s.StartsWith("#"))
-                s = file.ReadLine();
-            int n = Convert.ToInt32(s);
-            defBuildings = new DefenseBuilding[n];
-            for(int i=0;i<n;i++){
-                s = file.ReadLine();
-                while (s.StartsWith("#"))
-                    s = file.ReadLine();
-                String[] word = s.Split(';');
-                defBuildings[i] = new DefenseBuilding(word[0], Convert.ToInt32(word[1]), Convert.ToInt32(word[2]));
-            }
-            file.Close();
-        }
-
-        private static void readUnitStats(){
-            StreamReader file = new System.IO.StreamReader("units.txt");
-            String s = file.ReadLine();
-            while (s.StartsWith("#"))
-                s = file.ReadLine();
-            int n = Convert.ToInt32(s);
-            unitStats = new UnitStats[n];
-            for(int i=0;i<n;i++){
-                s = file.ReadLine();
-                while (s.StartsWith("#"))
-                    s = file.ReadLine();
-                String[] word = s.Split(';');
-                unitStats[i] = new UnitStats(word[0].Replace('_',' '), Convert.ToByte(word[1]), Convert.ToByte(word[2]), Convert.ToByte(word[3]), Convert.ToByte(word[4]), Convert.ToByte(word[5]), Convert.ToByte(word[6]), Convert.ToInt32(word[7]), Convert.ToInt32(word[8]), (float)Convert.ToDouble(word[9]));
-            }
-            file.Close();
-        }
-
->>>>>>> 514ff1315fcb8801acc2e5e97947ee7bab39b657
         private static void readScenario(){
             char[] separator = {' ', ';'};
             StreamReader file = new System.IO.StreamReader("scenario.txt");

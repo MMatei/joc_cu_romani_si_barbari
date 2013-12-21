@@ -9,8 +9,8 @@ namespace joc_cu_romani_si_barbari
 {
     public class _2DCamera
     {
-        private const float zoomUpperLimit = 1f;
-        private const float zoomLowerLimit = .275f;
+        private float zoomUpperLimit;
+        private float zoomLowerLimit;
 
         private float _zoom;
         private Matrix _transform;
@@ -21,9 +21,11 @@ namespace joc_cu_romani_si_barbari
         private int _worldWidth;
         private int _worldHeight;
 
-        public _2DCamera(int viewportWidth, int viewportHeight, int worldWidth, int worldHeight, float initialZoom)
+        public _2DCamera(int viewportWidth, int viewportHeight, int worldWidth, int worldHeight, float initialZoom, float minZoom, float maxZoom)
         {
             _zoom = initialZoom;
+            zoomLowerLimit = minZoom;
+            zoomUpperLimit = maxZoom;
             _rotation = 0.0f;
             _pos = Vector2.Zero;
             _viewportWidth = viewportWidth;

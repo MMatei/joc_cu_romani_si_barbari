@@ -17,7 +17,10 @@ namespace joc_cu_romani_si_barbari
         internal List<Army> armies = new List<Army>();
         internal bool isSelected;
 
-        public Province(int baseIncome, String name, int _startX, int _startY, int _endX, int _endY, int _armyX, int _armyY)
+        public Province()
+        { }
+
+        public void setProvince(int baseIncome, String name, int _startX, int _startY, int _endX, int _endY, int _armyX, int _armyY)
         {
             this.baseIncome = baseIncome;
             this.name = name;
