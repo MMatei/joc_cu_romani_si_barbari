@@ -36,20 +36,25 @@ namespace joc_cu_romani_si_barbari
         //private Rectangle uiProvinceBarRect;
         private Texture2D coin;//money gfx
         private SpriteFont font;
+        private RenderTarget2D minimapTexture;//http://rbwhitaker.wikidot.com/render-to-texture
+
+        //input control
+        private bool spacebarNotPressed = true, prtscNotPressed = true;
+        private MouseState mouseStateCurrent, mouseStatePrevious;
 
         // other stuff
         private bool isActive;//if I alt-Tab, then the game deactivates and no longer responds to input
         private int screenH, screenW, scrollMarginRight, scrollMarginDown;//vezi functia de scroll
         private Vector2 spritePosition = Vector2.Zero;
         private Vector2 spriteSpeed = new Vector2(50.0f, 50.0f);
-        private _2DCamera Camera;
+        private _2DCamera camera;
         private float previousScroll = 0f;
         private int startX, startY, endX, endY;//needed when updating a province's color
-        public bool REMOVE = true;// TO BE REMOVED
-        public bool smth = true;// TO BE REMOVED
         private TimeSpan timeBetweenDays = new TimeSpan(0);//the timespan that must elapse before we switch over to the next day
         private static Utilities.Date date;//aici tinem minte data curenta
-        // game variables - aici tinem vectori cu datele care trebuie tinute minte doar o data, intr-un singur loc
+        private Random rand = new Random();
+
+        // gameplay variables - aici tinem vectori cu datele care trebuie tinute minte doar o data, intr-un singur loc
         internal static Province[] provinces;
         internal static Nation[] nations;
         internal static DefenseBuilding[] defBuildings;
@@ -58,9 +63,6 @@ namespace joc_cu_romani_si_barbari
         internal static byte[,] mapMatrix;// aici stocam info despre carei provincii ii apartine pixelul i, j
         //ne intereseaza atat la desenarea provinciilor, cat si pentru a determina pe ce provincie am dat click
         internal static byte player = 1;//index in vectorul de natiuni (momentan doar WRE e jucabil)
-        private Random rand = new Random();
-        public MouseState mouseStateCurrent, mouseStatePrevious;
-        private RenderTarget2D minimapTexture;//http://rbwhitaker.wikidot.com/render-to-texture
         #endregion
 
         public Game()
@@ -69,7 +71,7 @@ namespace joc_cu_romani_si_barbari
             Content.RootDirectory = "Content";
             screenW = this.graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
             screenH = this.graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
-            Camera = new _2DCamera(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height, 4400, 2727, 1f, 0.5f, 1f);
+            camera = new _2DCamera(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height, 4400, 2727, 1f, 0.5f, 1f);
             this.graphics.IsFullScreen = true;
             scrollMarginRight = screenW - 40;
             scrollMarginDown = screenH - 40;
@@ -203,7 +205,7 @@ namespace joc_cu_romani_si_barbari
                 Vector2 q2 = new Vector2();
                 q1.X = mouseStateCurrent.X;
                 q1.Y = mouseStateCurrent.Y;
-                q2 = Camera.ScreenToWorld(q1);
+                q2 = camera.ScreenToWorld(q1);
                 Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];
                 p.isSelected = true;
                 Utilities.ImageProcessor.updateMap(mapMatrix, p.startX, p.startY, p.endX, p.endY, prov00, prov01, prov02, prov10, prov11, prov12);
@@ -218,11 +220,11 @@ namespace joc_cu_romani_si_barbari
             // Adjust zoom if the mouse wheel has moved
             if (mouseStateCurrent.ScrollWheelValue > previousScroll)
             {
-                Camera.Zoom += 0.1f;
+                camera.Zoom += 0.1f;
             }
             else if (mouseStateCurrent.ScrollWheelValue < previousScroll)
                  { 
-                    Camera.Zoom -= 0.1f; 
+                    camera.Zoom -= 0.1f; 
                  }
             previousScroll = mouseStateCurrent.ScrollWheelValue;
             // Move the camera when the pointer is near the edges
@@ -244,25 +246,48 @@ namespace joc_cu_romani_si_barbari
                 movement.Y--;
             if (key.IsKeyDown(Keys.Down))
                 movement.Y++;
-            if (REMOVE && key.IsKeyDown(Keys.Space))
+            if (key.IsKeyDown(Keys.Space))
             {
-                REMOVE = false;
-                /*provinces[40].owner = nations[1];
-                startX = provinces[40].startX;
-                startY = provinces[40].startY;
-                endX = provinces[40].endX;
-                endY = provinces[40].endY;
-                Thread t = new Thread(new ThreadStart(run));
-                t.Start();*/
-                //nations[3].armies[0].borderStance = Army.ANNIHILATE;
-                //nations[3].armies[0].goTo(provinces[11]);
-                nations[1].armies[0].goTo(provinces[6]);
+                if (spacebarNotPressed)
+                {
+                    spacebarNotPressed = false;
+                    Console.WriteLine("bazoongas!");
+                    /*provinces[40].owner = nations[1];
+                    startX = provinces[40].startX;
+                    startY = provinces[40].startY;
+                    endX = provinces[40].endX;
+                    endY = provinces[40].endY;
+                    Thread t = new Thread(new ThreadStart(run));
+                    t.Start();*/
+                    //nations[3].armies[0].borderStance = Army.ANNIHILATE;
+                    //nations[3].armies[0].goTo(provinces[11]);
+                    //nations[1].armies[0].goTo(provinces[6]);
+                }
             }
+            else spacebarNotPressed = true;
+            #region PrintScreen
+            if (key.IsKeyDown(Keys.PrintScreen))
+            {
+                if (prtscNotPressed)
+                {
+                    prtscNotPressed = false;
+                    GraphicsDevice.Clear(Color.CornflowerBlue);
+                    makeMinimap();
+                    RenderTarget2D screenshot = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
+
+                    GraphicsDevice.SetRenderTarget(screenshot);
+                    _draw();
+                    GraphicsDevice.SetRenderTarget(null);
+                    screenshot.SaveAsPng(new FileStream("screenie.png", FileMode.Create), screenW, screenH);
+                }
+            }
+            else prtscNotPressed = true;
+            #endregion
             // Allows the game to exit
             if (key.IsKeyDown(Keys.Escape))
                 this.Exit();
 
-            Camera.Pos += movement * 20;
+            camera.Pos += movement * 20;
             #endregion
             musicPlayer.wazzap();//poke, poke (check that the music is still playing)
             base.Update(gameTime);
@@ -323,28 +348,20 @@ namespace joc_cu_romani_si_barbari
             #endregion
         }
 
-        /// <summary>
-        /// This is called when the game should draw itself.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        protected override void Draw(GameTime gameTime)
+        //placed all drawing in a separate functions so we can reuse that code when taking screenshots
+        //Render world map to minimapTexture
+        private void makeMinimap()
         {
-            if (!isActive) return;//no need to draw when the game is not in focus
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-            base.Draw(gameTime);
-
-            #region Render world map to minimapTexture
             // Set the render target
             GraphicsDevice.SetRenderTarget(minimapTexture);
-            GraphicsDevice.DepthStencilState = new DepthStencilState() { DepthBufferEnable = true };
 
             // Draw the scene to texture
-            float initZoom = Camera.Zoom;
+            float initZoom = camera.Zoom;
             Vector2 dummy = new Vector2(0.0f, 0.0f), initPos;
-            Camera.Zoom = 0.5f;
-            initPos = Camera.Pos;
-            Camera.Pos += dummy;
-            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, Camera.GetTransformation());
+            camera.Zoom = 0.5f;
+            initPos = camera.Pos;
+            camera.Pos += dummy;
+            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, camera.GetTransformation());
             spriteBatch.Draw(prov00, rect00, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
             spriteBatch.Draw(prov01, rect01, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
             spriteBatch.Draw(prov02, rect02, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
@@ -361,12 +378,13 @@ namespace joc_cu_romani_si_barbari
 
             // Drop the render target
             GraphicsDevice.SetRenderTarget(null);
-            Camera.Zoom = initZoom;
-            Camera.Pos = initPos;
-            #endregion
-
-            #region Actual rendering
-            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, Camera.GetTransformation());
+            camera.Zoom = initZoom;
+            camera.Pos = initPos;
+        }
+        //Draw the world map to screen, along with the UI
+        private void _draw()
+        {
+            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, camera.GetTransformation());
 
             // Draw our images
             // spriteBatch.Draw( texture to draw, rectangle in which to draw, what part of the image to draw (null means all of it),
@@ -403,7 +421,17 @@ namespace joc_cu_romani_si_barbari
             spriteBatch.DrawString(font, date.ToString(), new Vector2(screenW - 100, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.Draw(minimapTexture, new Rectangle(screenW - 300, 50, 300, 150), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.End();
-            #endregion
+        }
+        /// <summary>
+        /// This is called when the game should draw itself.
+        /// </summary>
+        /// <param name="gameTime">Provides a snapshot of timing values.</param>
+        protected override void Draw(GameTime gameTime)
+        {
+            if (!isActive) return;//no need to draw when the game is not in focus
+            GraphicsDevice.Clear(Color.CornflowerBlue);
+            makeMinimap();
+            _draw();
         }
 
         // from here - content loading functions called just once in the loadContent phase
