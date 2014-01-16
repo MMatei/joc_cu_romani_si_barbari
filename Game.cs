@@ -18,6 +18,7 @@ namespace joc_cu_romani_si_barbari
     /// </summary>
     public class Game : Microsoft.Xna.Framework.Game
     {
+        #region Variable declarations
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
         private Viewport defaultViewport = new Viewport();
@@ -59,6 +60,8 @@ namespace joc_cu_romani_si_barbari
         internal static byte player = 1;//index in vectorul de natiuni (momentan doar WRE e jucabil)
         private Random rand = new Random();
         public MouseState mouseStateCurrent, mouseStatePrevious;
+        private RenderTarget2D minimapTexture;//http://rbwhitaker.wikidot.com/render-to-texture
+        #endregion
 
         public Game()
         {
@@ -74,6 +77,7 @@ namespace joc_cu_romani_si_barbari
             //lastSelectedProvince = null;
         }
 
+        #region Alt-Tab management
         protected override void OnActivated(object sender, EventArgs args)
         {
             base.OnActivated(sender, args);
@@ -85,6 +89,7 @@ namespace joc_cu_romani_si_barbari
             base.OnDeactivated(sender, args);
             isActive = false;
         }
+        #endregion
 
         /// <summary>
         /// Allows the game to perform any initialization it needs to before starting to run.
@@ -95,6 +100,12 @@ namespace joc_cu_romani_si_barbari
         protected override void Initialize()
         {
             this.IsMouseVisible = true;
+            minimapTexture = new RenderTarget2D(GraphicsDevice,
+                            GraphicsDevice.PresentationParameters.BackBufferWidth,
+                            GraphicsDevice.PresentationParameters.BackBufferHeight,
+                            false,
+                            GraphicsDevice.PresentationParameters.BackBufferFormat,
+                            DepthFormat.Depth24);
             base.Initialize();
         }
 
@@ -179,11 +190,12 @@ namespace joc_cu_romani_si_barbari
         {
             if (!isActive) return;//the game doesn't respond to input
             KeyboardState key = Keyboard.GetState();
+            mouseStateCurrent = Mouse.GetState();
             
             Vector2 movement = Vector2.Zero;
             Viewport vp = GraphicsDevice.Viewport;
 
-            mouseStateCurrent = Mouse.GetState();
+            #region Responding to input
             if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
             {
                 Utilities.ImageProcessor.updateMap(mapMatrix, startX, startY, endX, endY, prov00, prov01, prov02, prov10, prov11, prov12);
@@ -251,8 +263,11 @@ namespace joc_cu_romani_si_barbari
                 this.Exit();
 
             Camera.Pos += movement * 20;
-            musicPlayer.wazzap();//poke, poke
+            #endregion
+            musicPlayer.wazzap();//poke, poke (check that the music is still playing)
             base.Update(gameTime);
+
+            #region Game Update
             timeBetweenDays = timeBetweenDays.Add(gameTime.ElapsedGameTime);
             if (timeBetweenDays.Seconds >= 5)//do the stuff necessary to pass to the next day
             {
@@ -305,6 +320,7 @@ namespace joc_cu_romani_si_barbari
                 date.next();
                 //Console.WriteLine("A day has passed!");
             }
+            #endregion
         }
 
         /// <summary>
@@ -316,6 +332,40 @@ namespace joc_cu_romani_si_barbari
             if (!isActive) return;//no need to draw when the game is not in focus
             GraphicsDevice.Clear(Color.CornflowerBlue);
             base.Draw(gameTime);
+
+            #region Render world map to minimapTexture
+            // Set the render target
+            GraphicsDevice.SetRenderTarget(minimapTexture);
+            GraphicsDevice.DepthStencilState = new DepthStencilState() { DepthBufferEnable = true };
+
+            // Draw the scene to texture
+            float initZoom = Camera.Zoom;
+            Vector2 dummy = new Vector2(0.0f, 0.0f), initPos;
+            Camera.Zoom = 0.5f;
+            initPos = Camera.Pos;
+            Camera.Pos += dummy;
+            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, Camera.GetTransformation());
+            spriteBatch.Draw(prov00, rect00, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(prov01, rect01, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(prov02, rect02, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(prov10, rect10, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(prov11, rect11, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(prov12, rect12, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(map00, rect00, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+            spriteBatch.Draw(map01, rect01, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+            spriteBatch.Draw(map02, rect02, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+            spriteBatch.Draw(map10, rect10, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+            spriteBatch.Draw(map11, rect11, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+            spriteBatch.Draw(map12, rect12, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+            spriteBatch.End();
+
+            // Drop the render target
+            GraphicsDevice.SetRenderTarget(null);
+            Camera.Zoom = initZoom;
+            Camera.Pos = initPos;
+            #endregion
+
+            #region Actual rendering
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, Camera.GetTransformation());
 
             // Draw our images
@@ -351,8 +401,9 @@ namespace joc_cu_romani_si_barbari
             spriteBatch.Draw(coin, new Rectangle(screenW - 290, 10, 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(font, nations[player].money + "", new Vector2(screenW - 250, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(font, date.ToString(), new Vector2(screenW - 100, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-
+            spriteBatch.Draw(minimapTexture, new Rectangle(screenW - 300, 50, 300, 150), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.End();
+            #endregion
         }
 
         // from here - content loading functions called just once in the loadContent phase
