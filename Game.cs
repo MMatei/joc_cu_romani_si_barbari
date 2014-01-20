@@ -21,15 +21,14 @@ namespace joc_cu_romani_si_barbari
         #region Variable declarations
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
-        private Viewport defaultViewport = new Viewport();
 
         // sound stuff
         private Utilities.MusicPlayer musicPlayer;
 
         // textures
-        private Texture2D map00, map01, map02, map10, map11, map12;
-        private Texture2D prov00, prov01, prov02, prov10, prov11, prov12;
-        private Rectangle rect00, rect01, rect02, rect10, rect11, rect12;
+        private Texture2D[] mapTexture;//the 2048x2048 (or less) rectangles forming our map
+        private Rectangle[] mapPosition;
+        private int mapTextureLength;
         private Texture2D uiBackground;//the texture which will serve as background for all UI elements
         private Rectangle uiStatusBarRect;//the portion of the texture used for the status bar
         //private Texture2D uiProvinceBarBackground;
@@ -49,10 +48,10 @@ namespace joc_cu_romani_si_barbari
         private Vector2 spriteSpeed = new Vector2(50.0f, 50.0f);
         private _2DCamera camera;
         private float previousScroll = 0f;
-        private int startX, startY, endX, endY;//needed when updating a province's color
         private TimeSpan timeBetweenDays = new TimeSpan(0);//the timespan that must elapse before we switch over to the next day
         private static Utilities.Date date;//aici tinem minte data curenta
         private Random rand = new Random();
+        private Province prevSelectedProv = null;
 
         // gameplay variables - aici tinem vectori cu datele care trebuie tinute minte doar o data, intr-un singur loc
         internal static Province[] provinces;
@@ -71,12 +70,10 @@ namespace joc_cu_romani_si_barbari
             Content.RootDirectory = "Content";
             screenW = this.graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
             screenH = this.graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
-            camera = new _2DCamera(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height, 4400, 2727, 1f, 0.5f, 1f);
             this.graphics.IsFullScreen = true;
             scrollMarginRight = screenW - 40;
             scrollMarginDown = screenH - 40;
             mouseStatePrevious = Mouse.GetState();
-            //lastSelectedProvince = null;
         }
 
         #region Alt-Tab management
@@ -119,52 +116,60 @@ namespace joc_cu_romani_si_barbari
         {
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
-            defaultViewport = GraphicsDevice.Viewport;
             
-            Nation.readNations();
-            for(int i=1;i<nations.Length;i++)// load army icons as textures (we start from 1 to skip Sea)
-                nations[i].armyIcon = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/army icons/" + nations[i].name + " icon.png", FileMode.Open));
-            Province.readProvinces();
+            // Read text files to form data cache
+            Nation.readNations(GraphicsDevice);
+            Province.readProvinces(GraphicsDevice);
             DefenseBuilding.readDefBuildings();
             UnitStats.readUnitStats();
             Tactic.readMeleeTactics();
             Tactic.readSkirmishTactics();
             readScenario();
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-            map00 = Content.Load<Texture2D>("00");
-            map01 = Content.Load<Texture2D>("01");
-            map02 = Content.Load<Texture2D>("02");
-            map10 = Content.Load<Texture2D>("10");
-            map11 = Content.Load<Texture2D>("11");
-            map12 = Content.Load<Texture2D>("12");
-            //uiProvinceBarBackground = Content.Load<Texture2D>("scroll.png");
-            rect00 = new Rectangle(0, 0, map00.Width, map00.Height);
-            rect01 = new Rectangle(map00.Width, 0, map01.Width, map01.Height);
-            rect02 = new Rectangle(map00.Width + map01.Width, 0, map02.Width, map02.Height);
-            rect10 = new Rectangle(0, map00.Height, map10.Width, map10.Height);
-            rect11 = new Rectangle(map10.Width, map01.Height, map11.Width, map11.Height);
-            rect12 = new Rectangle(map10.Width + map11.Width, map02.Height, map12.Width, map12.Height);
+            // Load other textures
             uiBackground = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/fish_mosaic.jpg", FileMode.Open));
             uiStatusBarRect = new Rectangle(100, 100, 300, 50);
-            //uiProvinceBarRect = new Rectangle(0, 0, screenW, (int)screenH/5);
             coin = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/coin.png", FileMode.Open));
             font = Content.Load<SpriteFont>("SpriteFont1");
-
-            MemoryStream[] provTextureStream = new MemoryStream[6];
-            mapMatrix = Utilities.ImageProcessor.createMapMatrix(provTextureStream);
-            prov00 = Texture2D.FromStream(GraphicsDevice, provTextureStream[0]);
-            prov01 = Texture2D.FromStream(GraphicsDevice, provTextureStream[1]);
-            prov02 = Texture2D.FromStream(GraphicsDevice, provTextureStream[2]);
-            prov10 = Texture2D.FromStream(GraphicsDevice, provTextureStream[3]);
-            prov11 = Texture2D.FromStream(GraphicsDevice, provTextureStream[4]);
-            prov12 = Texture2D.FromStream(GraphicsDevice, provTextureStream[5]);
-            for (int i = 0; i < 6; i++)
+            // Load map matrix from map.bin
+            int[] dim = new int[2];
+            mapMatrix = Utilities.ImageProcessor.readMapMatrix(dim);
+            // Load map textures
+            int w = dim[0], h = dim[1], crrtX = 0, crrtY = 0;
+            mapTextureLength = 0;
+            mapTexture = new Texture2D[6];
+            mapPosition = new Rectangle[6];
+            int maxLength = 6;
+            /* The basic ideea is this: starting with (0,0) we load consecutive rectangles on the same row
+             *  when the row is exhausted, we move on to the next row and so on until all rows are exhausted
+             */
+            while (crrtY != h)
             {
-                provTextureStream[i].Close();
-                provTextureStream[i] = null;
+                if (mapTextureLength == maxLength)//we need to allocate further memory
+                {
+                    maxLength *= 2;
+                    Texture2D[] newMapTexture = new Texture2D[maxLength];
+                    mapTexture.CopyTo(newMapTexture, 0);
+                    mapTexture = newMapTexture;
+                    Rectangle[] newMapPosition = new Rectangle[maxLength];
+                    mapPosition.CopyTo(newMapPosition, 0);
+                    mapPosition = newMapPosition;
+                }
+                int width = crrtX + 2048 > w ? w - crrtX : 2048;//we try to load a 2048 x 2048 rectangle; if we're nearing an edge
+                int height = crrtY + 2048 > h ? h - crrtY : 2048;//we settle for less
+                mapTexture[mapTextureLength] = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics\\map\\" + mapTextureLength + ".png", FileMode.Open));
+                mapPosition[mapTextureLength] = new Rectangle(crrtX, crrtY, width, height);
+                mapTextureLength++;
+                crrtX += width;
+                if (crrtX == w)
+                {
+                    crrtX = 0;
+                    crrtY += height;
+                }
             }
+            // Initialize the camera with the map's dimensions
+            camera = new _2DCamera(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height, dim[0], dim[1], 1f, 0.5f, 1f);
 
-            //initialize playlist
+            // Initialize playlist
             List<Song> music = new List<Song>();
             music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 1"));
             music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 2"));
@@ -193,27 +198,21 @@ namespace joc_cu_romani_si_barbari
             if (!isActive) return;//the game doesn't respond to input
             KeyboardState key = Keyboard.GetState();
             mouseStateCurrent = Mouse.GetState();
-            
             Vector2 movement = Vector2.Zero;
-            Viewport vp = GraphicsDevice.Viewport;
 
             #region Responding to input
             if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
-            {
-                Utilities.ImageProcessor.updateMap(mapMatrix, startX, startY, endX, endY, prov00, prov01, prov02, prov10, prov11, prov12);
+            {//we've clicked on something
+                if (prevSelectedProv != null)
+                    prevSelectedProv.setDeselected();
                 Vector2 q1 = new Vector2();
                 Vector2 q2 = new Vector2();
                 q1.X = mouseStateCurrent.X;
                 q1.Y = mouseStateCurrent.Y;
                 q2 = camera.ScreenToWorld(q1);
                 Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];
-                p.isSelected = true;
-                Utilities.ImageProcessor.updateMap(mapMatrix, p.startX, p.startY, p.endX, p.endY, prov00, prov01, prov02, prov10, prov11, prov12);
-                p.isSelected = false;
-                startX = p.startX;
-                startY = p.startY; 
-                endX = p.endX; 
-                endY = p.endY;
+                p.setSelected();
+                prevSelectedProv = p;
             }
             mouseStatePrevious = mouseStateCurrent;
             
@@ -362,18 +361,16 @@ namespace joc_cu_romani_si_barbari
             initPos = camera.Pos;
             camera.Pos += dummy;
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, camera.GetTransformation());
-            spriteBatch.Draw(prov00, rect00, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov01, rect01, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov02, rect02, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov10, rect10, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov11, rect11, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov12, rect12, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(map00, rect00, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map01, rect01, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map02, rect02, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map10, rect10, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map11, rect11, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map12, rect12, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+
+            // Draw our images
+            // spriteBatch.Draw( texture to draw, rectangle in which to draw, what part of the image to draw (null means all of it),
+            //      Color with which to tint the texture (White means no modification), rotation, sprite origin, sprite effects,
+            //      layer depth (in the FrontToBack order, 0.0 lies at the back and 1.0 at the front) )
+            spriteBatch.Draw(provinces[0].background, provinces[0].position, null, provinces[0].color, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            for(int i=1;i<provinces.Length;i++)
+                spriteBatch.Draw(provinces[i].background, provinces[i].position, null, provinces[i].color, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            for(int i=0;i<mapTextureLength;i++)
+                spriteBatch.Draw(mapTexture[i], mapPosition[i], null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
             spriteBatch.End();
 
             // Drop the render target
@@ -385,23 +382,11 @@ namespace joc_cu_romani_si_barbari
         private void _draw()
         {
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, camera.GetTransformation());
-
-            // Draw our images
-            // spriteBatch.Draw( texture to draw, rectangle in which to draw, what part of the image to draw (null means all of it),
-            //      Color with which to tint the texture (White means no modification), rotation, sprite origin, sprite effects,
-            //      layer depth (in the FrontToBack order, 0.0 lies at the back and 1.0 at the front) )
-            spriteBatch.Draw(prov00, rect00, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov01, rect01, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov02, rect02, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov10, rect10, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov11, rect11, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(prov12, rect12, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-            spriteBatch.Draw(map00, rect00, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map01, rect01, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map02, rect02, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map10, rect10, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map11, rect11, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-            spriteBatch.Draw(map12, rect12, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+            spriteBatch.Draw(provinces[0].background, provinces[0].position, null, provinces[0].color, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+            for (int i = 1; i < provinces.Length; i++)
+                spriteBatch.Draw(provinces[i].background, provinces[i].position, null, provinces[i].color, 0.0f, Vector2.Zero, SpriteEffects.None, 0.05f);
+            for (int i = 0; i < mapTextureLength; i++)
+                spriteBatch.Draw(mapTexture[i], mapPosition[i], null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
             //draw the armies of the world
             foreach (Nation nation in nations)
             {
@@ -414,7 +399,6 @@ namespace joc_cu_romani_si_barbari
 
             //desenam elementele statice in raport cu camera (adica nu sunt afectate de ViewMatrix-ul camerei)
             spriteBatch.Begin();
-            //spriteBatch.Draw(uiProvinceBarBackground, new Rectangle((int)(Camera.Pos.X - screenW/ (2 * Camera.Zoom)), (int)(Camera.Pos.Y + (screenH * 0.2) * Camera.Zoom), (int)(screenW / Camera.Zoom), (int)(screenW / (5 * Camera.Zoom))), uiProvinceBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
             spriteBatch.Draw(uiBackground, new Rectangle(screenW - 300, 0, 300, 50), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
             spriteBatch.Draw(coin, new Rectangle(screenW - 290, 10, 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(font, nations[player].money + "", new Vector2(screenW - 250, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
@@ -429,7 +413,7 @@ namespace joc_cu_romani_si_barbari
         protected override void Draw(GameTime gameTime)
         {
             if (!isActive) return;//no need to draw when the game is not in focus
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(Color.Black);
             makeMinimap();
             _draw();
         }
@@ -455,7 +439,7 @@ namespace joc_cu_romani_si_barbari
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     provinces[i].prosperity = Convert.ToSingle(word[0]);
-                    provinces[i].owner = nations[Convert.ToInt32(word[1])];
+                    provinces[i].setOwner(nations[Convert.ToInt32(word[1])]);
                     //poate urma descrierea unei armate
                     s = file.ReadLine();
                     while(s.StartsWith("#"))
@@ -512,11 +496,6 @@ namespace joc_cu_romani_si_barbari
                 }
             }
             file.Close();
-        }
-
-        private void run()
-        {
-            Utilities.ImageProcessor.updateMap(mapMatrix, 0, 0, 4400, 2727, prov00, prov01, prov02, prov10, prov11, prov12);
         }
     }
 }

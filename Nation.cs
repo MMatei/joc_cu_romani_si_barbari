@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework;
+using System.IO;
 
 namespace joc_cu_romani_si_barbari
 {
@@ -21,10 +22,10 @@ namespace joc_cu_romani_si_barbari
             money = moneyInit;
         }
 
-        internal static void readNations()
+        internal static void readNations(GraphicsDevice gdi)
         {
             int n;
-            System.IO.StreamReader file = new System.IO.StreamReader("nations.txt");
+            StreamReader file = new StreamReader("nations.txt");
             String s = file.ReadLine();
             while (s.StartsWith("#"))//while commentary, skip over it
                 s = file.ReadLine();
@@ -38,9 +39,10 @@ namespace joc_cu_romani_si_barbari
                 String[] word = s.Split(';');
                 Game.nations[i] = new Nation(
                         word[0],//name
-                        System.Drawing.Color.FromArgb(Convert.ToInt32(word[1]), Convert.ToInt32(word[2]), Convert.ToInt32(word[3])),
+                        new Color(Convert.ToInt32(word[1]), Convert.ToInt32(word[2]), Convert.ToInt32(word[3])),
                         Convert.ToInt32(word[4])//money
                         );
+                Game.nations[i].armyIcon = Texture2D.FromStream(gdi, new FileStream("graphics/army icons/" + word[0] + " icon.png", FileMode.Open));
             }
             file.Close();
         }

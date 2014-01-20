@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework;
+using System.IO;
 
 namespace joc_cu_romani_si_barbari
 {
@@ -12,10 +15,11 @@ namespace joc_cu_romani_si_barbari
         internal float prosperity;
         internal String name;
         internal int armyX, armyY;//the coords for the rectangle wherein we place the armies in the province
-        internal int startX, startY, endX, endY;
+        internal Rectangle position;
         internal List<Neighbor> neighbors = new List<Neighbor>();
         internal List<Army> armies = new List<Army>();
-        internal bool isSelected;
+        internal Color color;//I trade memory for a slight decrease in computation; no need to compute the color each Draw() (prov selectata e mai inchisa la culoare)
+        internal Texture2D background;
 
         public Province()
         { }
@@ -24,19 +28,15 @@ namespace joc_cu_romani_si_barbari
         {
             this.baseIncome = baseIncome;
             this.name = name;
-            isSelected = false;
             armyX = _armyX;
             armyY = _armyY;
-            startX = _startX;
-            startY = _startY;
-            endX = _endX;
-            endY = _endY;
+            position = new Rectangle(_startX, _startY, _endX - _startX, _endY - _startY);
         }
 
-        internal static void readProvinces()
+        internal static void readProvinces(GraphicsDevice gdi)
         {
             int n;
-            System.IO.StreamReader file = new System.IO.StreamReader("provinces.txt");
+            StreamReader file = new StreamReader("provinces.txt");
             String s = file.ReadLine();
             while (s.StartsWith("#"))
                 s = file.ReadLine();
@@ -58,6 +58,7 @@ namespace joc_cu_romani_si_barbari
                         s = file.ReadLine();
                     String[] word = s.Split(';');
                     provinces[i].setProvince(Convert.ToInt32(word[0]), word[1], Convert.ToInt32(word[2]), Convert.ToInt32(word[3]), Convert.ToInt32(word[4]), Convert.ToInt32(word[5]), Convert.ToInt32(word[6]), Convert.ToInt32(word[7]));
+                    provinces[i].background = Texture2D.FromStream(gdi, new FileStream("graphics\\map\\"+word[1]+".png", FileMode.Open));
                     s = file.ReadLine();
                     while (!s.StartsWith("}"))
                     {//pana se termina descrierea, citim despre vecini
@@ -80,6 +81,24 @@ namespace joc_cu_romani_si_barbari
         // I do suggest, however, that equality be tested through position in the static Provinces array
         public bool equals(Province p){
             return name.CompareTo(p.name) == 0;
+        }
+
+        public void setOwner(Nation n)
+        {
+            owner = n;
+            color = new Color(n.color.ToVector3());
+        }
+        public void setSelected()
+        {
+            color.R = (byte)(color.R * 0.65f);
+            color.G = (byte)(color.G * 0.65f);
+            color.B = (byte)(color.B * 0.65f);
+        }
+        public void setDeselected()
+        {
+            color.R = owner.color.R;
+            color.G = owner.color.G;
+            color.B = owner.color.B;
         }
     }
 }

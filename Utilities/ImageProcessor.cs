@@ -12,16 +12,36 @@ namespace joc_cu_romani_si_barbari.Utilities
     class ImageProcessor
     {
         /// <summary>
+        /// Reads mapMatrix from map.bin
+        /// </summary>
+        /// <param name="dimensions">a hack to permit us to send back height and width</param>
+        /// <returns></returns>
+        public static byte[,] readMapMatrix(int[] dimensions)
+        {
+            BinaryReader file = new BinaryReader(new FileStream("map.bin", FileMode.Open));
+            int w = file.ReadInt32();
+            int h = file.ReadInt32();
+            dimensions[0] = w;
+            dimensions[1] = h;
+            int p = 0;
+            byte[,] mapMatrix = new byte[h, w];
+            byte[] data = file.ReadBytes(h * w);
+            for (int i = 0; i < h; i++)
+                for (int j = 0; j < w; j++)
+                    mapMatrix[i, j] = data[p++];
+            return mapMatrix;
+        }
+
+        // The following 3 functions are used only when the map files are changed
+        /// <summary>
         /// functia creeaza mapMatrix care contine informatii despre carei provincii ii apartine pixelul i, j
+        /// si apoi scrie matricea in fisierul map.bin
         /// pt a determina acest lucru, parcurgem bmp-ul pixel cu pixel
         /// fiecarei culori diferite intalnite ii asignam un nr diferit si fiecarui pixel ii asignam nr corespunzator
         /// astfel, dintr-o matrice de culori => o matrice de id-uri de provincii
-        /// (PS: id-ul descoperit aici coincide cu cel asignat provinciei in provinces.txt)
-        /// mai mult, tot aici creeam texturile care vor depicta culorile provinciilor
+        /// (PS: id-ul descoperit aici va trebui sa fie asignat provinciei in provinces.txt)
         /// </summary>
-        /// <param name="provTextureStream">array de 6 MemoryStream-uri in care depozitam temporar datele despre textura
-        /// (XNA nu are metode mai directe pt incarcat texturi)</param>
-        public unsafe static byte[,] createMapMatrix(MemoryStream[] provTextureStream)
+        public unsafe static void writeMapMatrixToFile()
         {
             Bitmap bmp = new Bitmap("provinces.bmp");
             byte[,] mapMatrix = new byte[bmp.Height, bmp.Width];
@@ -36,8 +56,8 @@ namespace joc_cu_romani_si_barbari.Utilities
                 for (int x = 0; x < w; x++)
                 {
                     byte blue = b[p]; //B
-                    byte green = b[p+1]; //G
-                    byte red = b[p+2]; //R
+                    byte green = b[p + 1]; //G
+                    byte red = b[p + 2]; //R
                     Color c = Color.FromArgb(red, green, blue);
                     int k = colors.IndexOf(c);
                     if (k == -1)
@@ -49,262 +69,75 @@ namespace joc_cu_romani_si_barbari.Utilities
                     mapMatrix[y, x] = (byte)k;
                     //daca tot suntem aici, hai sa si desenam harta
                     //tot ce trebuie sa fac este sa vad cine detine provincia => culoarea pe care trb sa o aiba pixelii provinciei
-                    c = Game.provinces[k].owner.color;
-                    b[p++] = c.B;// et voila
-                    b[p++] = c.G;
-                    b[p++] = c.R;
+                    b[p++] = Game.provinces[k].owner.color.B;// et voila
+                    b[p++] = Game.provinces[k].owner.color.G;
+                    b[p++] = Game.provinces[k].owner.color.R;
                 }
             }
             bmp.UnlockBits(data);//frumos e sa si eliberam resursele dupa ce nu mai avem nevoie de ele
-            //provinciile colorate vor forma o textura; dar cum o textura are o dimensiune maxima
-            Bitmap bmp1 = bmp.Clone(new Rectangle(0, 0, 1466, 1363), PixelFormat.Format24bppRgb);//trb impartita pe bucati
-            provTextureStream[0] = new MemoryStream();//aceste MemoryStream-uri vor fi incarcate apoi in textura
-            bmp1.Save(provTextureStream[0], ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(1465, 0, 1466, 1363), PixelFormat.Format24bppRgb);
-            provTextureStream[1] = new MemoryStream();
-            bmp1.Save(provTextureStream[1], ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(2932, 0, 1468, 1363), PixelFormat.Format24bppRgb);
-            provTextureStream[2] = new MemoryStream();
-            bmp1.Save(provTextureStream[2], ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(0, 1363, 1466, 1364), PixelFormat.Format24bppRgb);
-            provTextureStream[3] = new MemoryStream();
-            bmp1.Save(provTextureStream[3], ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(1466, 1363, 1466, 1364), PixelFormat.Format24bppRgb);
-            provTextureStream[4] = new MemoryStream();
-            bmp1.Save(provTextureStream[4], ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(2932, 1363, 1468, 1364), PixelFormat.Format24bppRgb);
-            provTextureStream[5] = new MemoryStream();
-            bmp1.Save(provTextureStream[5], ImageFormat.Png);
-            return mapMatrix;
+
+            BinaryWriter file = new BinaryWriter(new FileStream("map.bin", FileMode.OpenOrCreate));
+            file.Write(w);
+            file.Write(h);
+            for (int i = 0; i < h; i++)
+                for (int j = 0; j < w; j++)
+                    file.Write(mapMatrix[i, j]);
         }
 
         /// <summary>
-        /// functia asigura recolorarea provinciilor; pt a parcurge numarul minim de pixeli, furnizam functiei un dreptunghi pe care sa-l
-        /// recoloreze; de asemenea, furnizam referinte catre texturi, pt ca functia sa le poata accesa datele direct
-        /// (fara alte mijlociri care consuma timp pretios pe procesor; fct trb sa fie cat mai rapida)
-        /// </summary>
-        public unsafe static void updateMap(byte[,] mapMatrix, int startX, int startY, int endX, int endY,
-            Texture2D prov00, Texture2D prov01, Texture2D prov02, Texture2D prov10, Texture2D prov11, Texture2D prov12)
-        {
-            float updateDark = 0.65f;
-            //conditiile se asigura ca intram sa modificam doar texturile strict necesare
-            if (startX < 1466 && startY < 1363)
-            {
-                //Console.WriteLine("rect0");
-                int p = 0;
-                byte[] b = new byte[1466 * 1363 * 4];
-                prov00.GetData(b);
-                int endH = endY < 1363 ? endY : 1363;
-                int endW = endX < 1466 ? endX : 1466;
-                for (int y = startY; y < endH; y++)
-                {
-                    p = y * 1466 * 4 + startX * 4;
-                    for (int x = startX; x < endW; x++)
-                    {
-                        Color c = Game.provinces[mapMatrix[y,x]].owner.color;
-
-                        if (Game.provinces[mapMatrix[y, x]].isSelected == true)
-                        {
-
-                            b[p++] = (byte)(c.R * updateDark);
-                            b[p++] = (byte)(c.G * updateDark);
-                            b[p++] = (byte)(c.B * updateDark);
-                        }
-                        else if (Game.provinces[mapMatrix[y, x]].isSelected == false)
-                        {
-                            b[p++] = c.R;
-                            b[p++] = c.G;
-                            b[p++] = c.B;
-                        }
-                        
-                        p++;//Alpha remains unchanged
-                    }
-                }
-                prov00.SetData(b);
-            }
-            if (startX < 2931 && startY < 1363 && endX > 1465)
-            {
-                //Console.WriteLine("rect1");
-                int p = 0;
-                byte[] b = new byte[1466 * 1363 * 4];
-                prov01.GetData(b);
-                int startW = startX > 1466 ? startX : 1466;
-                int endH = endY < 1363 ? endY : 1363;
-                int endW = endX < 2932 ? endX : 2932;
-                for (int y = startY; y < endH; y++)
-                {
-                    p = y * 1466 * 4 + (startW - 1466) * 4;
-                    for (int x = startW; x < endW; x++)
-                    {
-                        Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        if (Game.provinces[mapMatrix[y, x]].isSelected)
-                        {
-
-                            b[p++] = (byte)(c.R * updateDark);
-                            b[p++] = (byte)(c.G * updateDark);
-                            b[p++] = (byte)(c.B * updateDark);
-                        }
-                        else
-                        {
-                            b[p++] = c.R;
-                            b[p++] = c.G;
-                            b[p++] = c.B;
-                        }
-                        p++;//Alpha remains unchanged
-                    }
-                }
-                prov01.SetData(b);
-            }
-            if (startY < 1363 && endX > 2931)
-            {
-                //Console.WriteLine("rect2");
-                int p = 0;
-                byte[] b = new byte[1468 * 1363 * 4];
-                prov02.GetData(b);
-                int startW = startX > 2932 ? startX : 2932;
-                int endH = endY < 1363 ? endY : 1363;
-                for (int y = 0; y < endH; y++)
-                {
-                    p = y * 1468 * 4 + (startW - 2932) * 4;
-                    for (int x = startW; x < endX; x++)
-                    {
-                        Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        if (Game.provinces[mapMatrix[y, x]].isSelected)
-                        {
-
-                            b[p++] = (byte)(c.R * updateDark);
-                            b[p++] = (byte)(c.G * updateDark);
-                            b[p++] = (byte)(c.B * updateDark);
-                        }
-                        else
-                        {
-                            b[p++] = c.R;
-                            b[p++] = c.G;
-                            b[p++] = c.B;
-                        }
-                        p++;//Alpha remains unchanged
-                    }
-                }
-                prov02.SetData(b);
-            }
-            if (startX < 1363 && endY > 1362)
-            {
-                //Console.WriteLine("rect3");
-                int p = 0;
-                byte[] b = new byte[1466 * 1364 * 4];
-                prov10.GetData(b);
-                int startH = startY > 1363 ? startY : 1363;
-                int endW = endX < 1466 ? endX : 1466;
-                for (int y = startH; y < endY; y++)
-                {
-                    p = (y - 1363) * 1466 * 4 + startX * 4;
-                    for (int x = startX; x < endW; x++)
-                    {
-                        Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        if (Game.provinces[mapMatrix[y, x]].isSelected)
-                        {
-
-                            b[p++] = (byte)(c.R * updateDark);
-                            b[p++] = (byte)(c.G * updateDark);
-                            b[p++] = (byte)(c.B * updateDark);
-                        }
-                        else
-                        {
-                            b[p++] = c.R;
-                            b[p++] = c.G;
-                            b[p++] = c.B;
-                        }
-                        p++;//Alpha remains unchanged
-                    }
-                }
-                prov10.SetData(b);
-            }
-            if (startX < 2931 && endX > 1465 && endY > 1362)
-            {
-                //Console.WriteLine("rect4");
-                int p = 0;
-                byte[] b = new byte[1466 * 1364 * 4];
-                prov11.GetData(b);
-                int startH = startY > 1363 ? startY : 1363;
-                int startW = startX > 1466 ? startX : 1466;
-                int endW = endX < 2932 ? endX : 2932;
-                for (int y = startH; y < endY; y++)
-                {
-                    p = (y - 1363) * 1466 * 4 + (startW - 1466) * 4;
-                    for (int x = startW; x < endW; x++)
-                    {
-                        Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        if (Game.provinces[mapMatrix[y, x]].isSelected)
-                        {
-
-                            b[p++] = (byte)(c.R * updateDark);
-                            b[p++] = (byte)(c.G * updateDark);
-                            b[p++] = (byte)(c.B * updateDark);
-                        }
-                        else
-                        {
-                            b[p++] = c.R;
-                            b[p++] = c.G;
-                            b[p++] = c.B;
-                        }
-                        p++;//Alpha remains unchanged
-                    }
-                }
-                prov11.SetData(b);
-            }
-            if (endX > 2932 && endY > 1362)
-            {
-                //Console.WriteLine("rect5");
-                int p = 0;
-                byte[] b = new byte[1468 * 1364 * 4];
-                prov12.GetData(b);
-                int startH = startY > 1363 ? startY : 1363;
-                int startW = startX > 2932 ? startX : 2932;
-                for (int y = startH; y < endY; y++)
-                {
-                    p = (y - 1363) * 1468 * 4 + (startW - 2932) * 4;
-                    for (int x = startW; x < endX; x++)
-                    {
-                        Color c = Game.provinces[mapMatrix[y, x]].owner.color;
-                        if (Game.provinces[mapMatrix[y, x]].isSelected)
-                        {
-
-                            b[p++] = (byte)(c.R * updateDark);
-                            b[p++] = (byte)(c.G * updateDark);
-                            b[p++] = (byte)(c.B * updateDark);
-                        }
-                        else
-                        {
-                            b[p++] = c.R;
-                            b[p++] = c.G;
-                            b[p++] = c.B;
-                        }
-                        p++;//Alpha remains unchanged
-                    }
-                }
-                prov12.SetData(b);
-            }
-        }
-
-        /// <summary>
-        /// functia imparte map.png in sase bucati (frumoase)
-        /// cat timp nu schimbi harta, n-ai ce cauta aici
+        /// functia imparte map.png in bucati de maxim 2048 x 2048; rezultatul e depozitat in graphics\\map\\
         /// </summary>
         public static void splitMapPng()
         {
             Bitmap bmp = new Bitmap("map.png");
-            Bitmap bmp1 = bmp.Clone(new Rectangle(0, 0, 1466, 1363), System.Drawing.Imaging.PixelFormat.DontCare);
-            bmp1.Save("00.png", System.Drawing.Imaging.ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(1465, 0, 1466, 1363), System.Drawing.Imaging.PixelFormat.DontCare);
-            bmp1.Save("01.png", System.Drawing.Imaging.ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(2932, 0, 1468, 1363), System.Drawing.Imaging.PixelFormat.DontCare);
-            bmp1.Save("02.png", System.Drawing.Imaging.ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(0, 1363, 1466, 1364), System.Drawing.Imaging.PixelFormat.DontCare);
-            bmp1.Save("10.png", System.Drawing.Imaging.ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(1466, 1363, 1466, 1364), System.Drawing.Imaging.PixelFormat.DontCare);
-            bmp1.Save("11.png", System.Drawing.Imaging.ImageFormat.Png);
-            bmp1 = bmp.Clone(new Rectangle(2932, 1363, 1468, 1364), System.Drawing.Imaging.PixelFormat.DontCare);
-            bmp1.Save("12.png", System.Drawing.Imaging.ImageFormat.Png);
+            int w = bmp.Width, h = bmp.Height, crrtX = 0, crrtY = 0, textureNr = 0;
+            while (crrtY != h)
+            {
+                int width = crrtX + 2048 > w ? w - crrtX : 2048;
+                int height = crrtY + 2048 > h ? h - crrtY : 2048;
+                Bitmap bmp1 = bmp.Clone(new Rectangle(crrtX, crrtY, width, height), System.Drawing.Imaging.PixelFormat.DontCare);
+                bmp1.Save("graphics\\map\\" + textureNr + ".png", System.Drawing.Imaging.ImageFormat.Png);
+                textureNr++;
+                crrtX += width;
+                if (crrtX == w)
+                {
+                    crrtX = 0;
+                    crrtY += height;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates the white background for province provID and saves it in provName.png
+        /// </summary>
+        public static unsafe void createProvWhitespace(byte[,] mapMatrix, int startX, int startY, int endX, int endY, byte provID)
+        {
+            Bitmap bmp = new Bitmap(endX - startX, endY - startY, PixelFormat.Format32bppArgb);
+            BitmapData data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            byte* b = (byte*)data.Scan0;//folosim un pointer ca sa parcurgem pas cu pas acest vector de date
+            int p = 0, h = bmp.Height, w = bmp.Width;
+            for (int y = startY; y < endY; y++)
+            {
+                for (int x = startX; x < endX; x++)
+                {
+                    if (mapMatrix[y, x] == provID)
+                    {
+                        b[p++] = 255;
+                        b[p++] = 255;
+                        b[p++] = 255;
+                        b[p++] = 255;//alpha
+                    }
+                    else
+                    {
+                        b[p++] = 0;
+                        b[p++] = 0;
+                        b[p++] = 0;
+                        b[p++] = 0;
+                    }
+                }
+            }
+            bmp.UnlockBits(data);
+            bmp.Save("graphics\\map\\"+Game.provinces[provID].name+".png", System.Drawing.Imaging.ImageFormat.Png);
         }
     }
 }
