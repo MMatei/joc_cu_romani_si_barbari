@@ -69,6 +69,9 @@ namespace joc_cu_romani_si_barbari
                     for (int j = 0; j < 7; j++)
                         t.reqPercentage[j] = Convert.ToSingle(word[j]);
                     meleeTactics[i] = t;
+                    while (s.StartsWith("#"))
+                        s = file.ReadLine();
+                    s = file.ReadLine();//read the closing '}'
                 }
                 else
                 {
@@ -130,6 +133,9 @@ namespace joc_cu_romani_si_barbari
                     for (int j = 0; j < 7; j++)
                         t.reqPercentage[j] = Convert.ToSingle(word[j]);
                     skirmishTactics[i] = t;
+                    while (s.StartsWith("#"))
+                        s = file.ReadLine();
+                    s = file.ReadLine();//read the closing '}'
                 }
                 else
                 {

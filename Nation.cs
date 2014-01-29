@@ -42,7 +42,7 @@ namespace joc_cu_romani_si_barbari
                         new Color(Convert.ToInt32(word[1]), Convert.ToInt32(word[2]), Convert.ToInt32(word[3])),
                         Convert.ToInt32(word[4])//money
                         );
-                Game.nations[i].armyIcon = Texture2D.FromStream(gdi, new FileStream("graphics/army icons/" + word[0] + " icon.png", FileMode.Open));
+                Game.nations[i].armyIcon = Texture2D.FromStream(gdi, new FileStream("graphics/army icons/" + word[0] + ".png", FileMode.Open));
             }
             file.Close();
         }

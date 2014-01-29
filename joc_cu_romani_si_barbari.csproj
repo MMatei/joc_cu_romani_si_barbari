@@ -79,6 +79,7 @@
     <Compile Include="Army.cs" />
     <Compile Include="DefenseBuilding.cs" />
     <Compile Include="Tactic.cs" />
+    <Compile Include="Utilities\AstarState.cs" />
     <Compile Include="Utilities\Date.cs" />
     <Compile Include="Utilities\ImageProcessor.cs" />
     <Compile Include="Nation.cs" />

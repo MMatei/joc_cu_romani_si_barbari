@@ -31,6 +31,7 @@ namespace joc_cu_romani_si_barbari
         private int mapTextureLength;
         private Texture2D uiBackground;//the texture which will serve as background for all UI elements
         private Rectangle uiStatusBarRect;//the portion of the texture used for the status bar
+        private Texture2D selectHalo;
         //private Texture2D uiProvinceBarBackground;
         //private Rectangle uiProvinceBarRect;
         private Texture2D coin;//money gfx
@@ -40,6 +41,20 @@ namespace joc_cu_romani_si_barbari
         //input control
         private bool spacebarNotPressed = true, prtscNotPressed = true;
         private MouseState mouseStateCurrent, mouseStatePrevious;
+
+        // Game State - we need to keep track of where we are to know what to draw and what input to receive
+        private byte gameState;
+        private const byte MAIN_MENU = 1;
+        private const byte OPTIONS_MENU = 2;
+        private const byte IN_GAME = 3;
+
+        // Main Menu variables
+        private Rectangle newGameRect, optionsRect, quitRect;
+        private Texture2D mainMenuTexture;
+        // Options Menu variables
+        private Rectangle resolutionRect, applyRect, backRect, leftArrowRect, rightArrowRect;
+        private Texture2D leftArrow, rightArrow;
+        private int selectedScreenW, selectedScreenH;
 
         // other stuff
         private bool isActive;//if I alt-Tab, then the game deactivates and no longer responds to input
@@ -59,21 +74,32 @@ namespace joc_cu_romani_si_barbari
         internal static DefenseBuilding[] defBuildings;
         internal static UnitStats[] unitStats;
         internal static Tactic[] meleeTactics, skirmishTactics;
+        internal static List<Army> selectedArmies = new List<Army>();//far better than searching through ALL the armies for the selected ones
         internal static byte[,] mapMatrix;// aici stocam info despre carei provincii ii apartine pixelul i, j
         //ne intereseaza atat la desenarea provinciilor, cat si pentru a determina pe ce provincie am dat click
         internal static byte player = 1;//index in vectorul de natiuni (momentan doar WRE e jucabil)
         #endregion
+        System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
 
         public Game()
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
-            screenW = this.graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
-            screenH = this.graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            //Read config file for saved options
+            if(!readConfigIni())
+            {
+                screenW = this.graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+                screenH = this.graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+                StreamWriter config = new StreamWriter("config.ini");
+                config.WriteLine("Width=" + screenW);
+                config.WriteLine("Height=" + screenH);
+                config.Close();
+            }
             this.graphics.IsFullScreen = true;
             scrollMarginRight = screenW - 40;
             scrollMarginDown = screenH - 40;
             mouseStatePrevious = Mouse.GetState();
+            gameState = MAIN_MENU;
         }
 
         #region Alt-Tab management
@@ -105,6 +131,14 @@ namespace joc_cu_romani_si_barbari
                             false,
                             GraphicsDevice.PresentationParameters.BackBufferFormat,
                             DepthFormat.Depth24);
+            newGameRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.4), (int)(screenW * 0.1), (int)(screenH * 0.05));
+            optionsRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.5), (int)(screenW * 0.1), (int)(screenH * 0.05));
+            quitRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
+            resolutionRect = new Rectangle((int)(screenW * 0.35), (int)(screenH * 0.4), (int)(screenW * 0.3), (int)(screenH * 0.05));
+            applyRect = new Rectangle((int)(screenW * 0.35), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
+            backRect = new Rectangle((int)(screenW * 0.55), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
+            leftArrowRect = new Rectangle((int)(resolutionRect.X+resolutionRect.Width/2-35), (int)(screenH * 0.395), 32, 32);
+            rightArrowRect = new Rectangle((int)(screenW * 0.6), (int)(screenH * 0.395), 32, 32);
             base.Initialize();
         }
 
@@ -114,6 +148,7 @@ namespace joc_cu_romani_si_barbari
         /// </summary>
         protected override void LoadContent()
         {
+            //Utilities.ImageProcessor.makeCircle(24, 32, 32);
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
             
@@ -126,9 +161,13 @@ namespace joc_cu_romani_si_barbari
             Tactic.readSkirmishTactics();
             readScenario();
             // Load other textures
+            mainMenuTexture = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/main menu.png", FileMode.Open));
+            leftArrow = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/left_arrow.png", FileMode.Open));
+            rightArrow = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/right_arrow.png", FileMode.Open));
             uiBackground = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/fish_mosaic.jpg", FileMode.Open));
             uiStatusBarRect = new Rectangle(100, 100, 300, 50);
             coin = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/coin.png", FileMode.Open));
+            selectHalo = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/army icons/circle.png", FileMode.Open));
             font = Content.Load<SpriteFont>("SpriteFont1");
             // Load map matrix from map.bin
             int[] dim = new int[2];
@@ -198,153 +237,228 @@ namespace joc_cu_romani_si_barbari
             if (!isActive) return;//the game doesn't respond to input
             KeyboardState key = Keyboard.GetState();
             mouseStateCurrent = Mouse.GetState();
-            Vector2 movement = Vector2.Zero;
 
-            #region Responding to input
-            if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
-            {//we've clicked on something
-                if (prevSelectedProv != null)
-                    prevSelectedProv.setDeselected();
-                Vector2 q1 = new Vector2();
-                Vector2 q2 = new Vector2();
-                q1.X = mouseStateCurrent.X;
-                q1.Y = mouseStateCurrent.Y;
-                q2 = camera.ScreenToWorld(q1);
-                Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];
-                p.setSelected();
-                prevSelectedProv = p;
-            }
-            mouseStatePrevious = mouseStateCurrent;
-            
-            // Adjust zoom if the mouse wheel has moved
-            if (mouseStateCurrent.ScrollWheelValue > previousScroll)
+            switch (gameState)
             {
-                camera.Zoom += 0.1f;
-            }
-            else if (mouseStateCurrent.ScrollWheelValue < previousScroll)
-                 { 
-                    camera.Zoom -= 0.1f; 
-                 }
-            previousScroll = mouseStateCurrent.ScrollWheelValue;
-            // Move the camera when the pointer is near the edges
-            if (mouseStateCurrent.X < 40)
-                movement.X--;
-            if (mouseStateCurrent.X > scrollMarginRight)
-                movement.X++;
-            if (mouseStateCurrent.Y < 40)
-                movement.Y--;
-            if (mouseStateCurrent.Y > scrollMarginDown)
-                movement.Y++;
-            
-            // Move the camera when the arrow keys are pressed
-            if (key.IsKeyDown(Keys.Left))
-                movement.X--;
-            if (key.IsKeyDown(Keys.Right))
-                movement.X++;
-            if (key.IsKeyDown(Keys.Up))
-                movement.Y--;
-            if (key.IsKeyDown(Keys.Down))
-                movement.Y++;
-            if (key.IsKeyDown(Keys.Space))
-            {
-                if (spacebarNotPressed)
+
+                case IN_GAME:
                 {
-                    spacebarNotPressed = false;
-                    Console.WriteLine("bazoongas!");
-                    /*provinces[40].owner = nations[1];
-                    startX = provinces[40].startX;
-                    startY = provinces[40].startY;
-                    endX = provinces[40].endX;
-                    endY = provinces[40].endY;
-                    Thread t = new Thread(new ThreadStart(run));
-                    t.Start();*/
-                    //nations[3].armies[0].borderStance = Army.ANNIHILATE;
-                    //nations[3].armies[0].goTo(provinces[11]);
-                    //nations[1].armies[0].goTo(provinces[6]);
-                }
-            }
-            else spacebarNotPressed = true;
-            #region PrintScreen
-            if (key.IsKeyDown(Keys.PrintScreen))
-            {
-                if (prtscNotPressed)
-                {
-                    prtscNotPressed = false;
-                    GraphicsDevice.Clear(Color.CornflowerBlue);
-                    makeMinimap();
-                    RenderTarget2D screenshot = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
+                    #region Responding to input
+                    Vector2 movement = Vector2.Zero;
 
-                    GraphicsDevice.SetRenderTarget(screenshot);
-                    _draw();
-                    GraphicsDevice.SetRenderTarget(null);
-                    screenshot.SaveAsPng(new FileStream("screenie.png", FileMode.Create), screenW, screenH);
-                }
-            }
-            else prtscNotPressed = true;
-            #endregion
-            // Allows the game to exit
-            if (key.IsKeyDown(Keys.Escape))
-                this.Exit();
-
-            camera.Pos += movement * 20;
-            #endregion
-            musicPlayer.wazzap();//poke, poke (check that the music is still playing)
-            base.Update(gameTime);
-
-            #region Game Update
-            timeBetweenDays = timeBetweenDays.Add(gameTime.ElapsedGameTime);
-            if (timeBetweenDays.Seconds >= 5)//do the stuff necessary to pass to the next day
-            {
-                timeBetweenDays = new TimeSpan(0);
-                //cycle through each army
-                /*foreach (Nation nation in nations)
-                {
-                    foreach (Army army in nation.armies)
-                    {
-                        if (army.isOnBorder)
+                    if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
+                    {//we've clicked on something
+                        if (prevSelectedProv != null)//first we clear old selections
+                            prevSelectedProv.setDeselected();
+                        selectedArmies.Clear();
+                        //then we compute our coordinates factoring in zoom level
+                        Vector2 q1 = new Vector2();
+                        Vector2 q2 = new Vector2();
+                        q1.X = mouseStateCurrent.X;
+                        q1.Y = mouseStateCurrent.Y;
+                        q2 = camera.ScreenToWorld(q1);
+                        Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];//then use the mapMatrix to deduce on which province we clicked
+                        //check if we've clicked on an army
+                        bool armySelected = false;
+                        foreach (Army army in p.armies)
                         {
-                            if (army.nextProvIsFriendly() || !army.targetBorder.hasDefenders())
-                            {//the border is crossed efortlessly
-                                army.isOnBorder = false;
-                                army.crrtProv = army.nextProv;
-                                army.iconLocation.X = army.crrtProv.armyX;
-                                army.iconLocation.Y = army.crrtProv.armyY;
-                            }
-                            else
-                            {//we must breach the border
-                                Neighbor border = army.targetBorder;
-                                double dmg1 = border.getDamage();
-                                double dmg2 = army.getAssaultDamage(border.hasDefenses());
-                                border.eatDamage(dmg1);
-                                army.eatAssaultDamage(dmg2, border.hasDefenses());
-                                double ch = Math.Min(95, Math.Min(5, ((1-army.borderStance)*20 - border.getDefenseRating() * border.coverage()) * 5));
-                                Console.WriteLine(dmg1+" "+dmg2+" "+ch);
-                                if (rand.Next(100) < ch)//the border is breached
-                                {
-                                    army.isOnBorder = false;
-                                    army.crrtProv = army.nextProv;
-                                    army.iconLocation.X = army.crrtProv.armyX;
-                                    army.iconLocation.Y = army.crrtProv.armyY;
-                                }
+                            if (army.iconLocation.Contains((int)q2.X, (int)q2.Y))
+                            {
+                                selectedArmies.Add(army);
+                                armySelected = true;
                             }
                         }
-                        if (army.nextProv != army.crrtProv)//inseamna ca ma duc undeva
+                        if (!armySelected)
                         {
-                            if (army.distToNext == 0)//we have arrived at the border with the next province
-                            {//effects to be refined
-                                //army.crrtProv = army.nextProv;
-                                army.iconLocation.X = army.targetBorder.armyX;
-                                army.iconLocation.Y = army.targetBorder.armyY;
-                                army.isOnBorder = true;
-                            }
-                            army.march();
+                            p.setSelected();
+                            prevSelectedProv = p;
                         }
                     }
-                }*/
-                date.next();
-                //Console.WriteLine("A day has passed!");
+                    if (mouseStateCurrent.RightButton == ButtonState.Pressed && mouseStatePrevious.RightButton == ButtonState.Released)
+                    {//order all selected armies to the indicated province
+
+                    }
+                    mouseStatePrevious = mouseStateCurrent;
+
+                    // Adjust zoom if the mouse wheel has moved
+                    if (mouseStateCurrent.ScrollWheelValue > previousScroll)
+                    {
+                        camera.Zoom += 0.1f;
+                    }
+                    else if (mouseStateCurrent.ScrollWheelValue < previousScroll)
+                    {
+                        camera.Zoom -= 0.1f;
+                    }
+                    previousScroll = mouseStateCurrent.ScrollWheelValue;
+                    // Move the camera when the pointer is near the edges
+                    if (mouseStateCurrent.X < 40)
+                        movement.X--;
+                    if (mouseStateCurrent.X > scrollMarginRight)
+                        movement.X++;
+                    if (mouseStateCurrent.Y < 40)
+                        movement.Y--;
+                    if (mouseStateCurrent.Y > scrollMarginDown)
+                        movement.Y++;
+
+                    // Move the camera when the arrow keys are pressed
+                    if (key.IsKeyDown(Keys.Left))
+                        movement.X--;
+                    if (key.IsKeyDown(Keys.Right))
+                        movement.X++;
+                    if (key.IsKeyDown(Keys.Up))
+                        movement.Y--;
+                    if (key.IsKeyDown(Keys.Down))
+                        movement.Y++;
+                    if (key.IsKeyDown(Keys.Space))
+                    {
+                        if (spacebarNotPressed)
+                        {
+                            spacebarNotPressed = false;
+                            Console.WriteLine("bazoongas!");
+                            /*provinces[40].owner = nations[1];
+                            startX = provinces[40].startX;
+                            startY = provinces[40].startY;
+                            endX = provinces[40].endX;
+                            endY = provinces[40].endY;
+                            Thread t = new Thread(new ThreadStart(run));
+                            t.Start();*/
+                            //nations[3].armies[0].borderStance = Army.ANNIHILATE;
+                            //nations[3].armies[0].goTo(provinces[11]);
+                            //nations[1].armies[0].goTo(provinces[6]);
+                        }
+                    }
+                    else spacebarNotPressed = true;
+                    #region PrintScreen
+                    if (key.IsKeyDown(Keys.PrintScreen))
+                    {
+                        if (prtscNotPressed)
+                        {
+                            prtscNotPressed = false;
+                            GraphicsDevice.Clear(Color.CornflowerBlue);
+                            makeMinimap();
+                            RenderTarget2D screenshot = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
+
+                            GraphicsDevice.SetRenderTarget(screenshot);
+                            _draw();
+                            GraphicsDevice.SetRenderTarget(null);
+                            screenshot.SaveAsPng(new FileStream("screenie.png", FileMode.Create), screenW, screenH);
+                        }
+                    }
+                    else prtscNotPressed = true;
+                    #endregion
+                    // Allows the game to exit
+                    if (key.IsKeyDown(Keys.Escape))
+                        this.Exit();
+
+                    camera.Pos += movement * 20;
+                    #endregion
+
+                    #region Game Update
+                    timeBetweenDays = timeBetweenDays.Add(gameTime.ElapsedGameTime);
+                    if (timeBetweenDays.Seconds >= 5)//do the stuff necessary to pass to the next day
+                    {
+                        timeBetweenDays = new TimeSpan(0);
+                        //cycle through each army
+                        /*foreach (Nation nation in nations)
+                        {
+                            foreach (Army army in nation.armies)
+                            {
+                                if (army.isOnBorder)
+                                {
+                                    if (army.nextProvIsFriendly() || !army.targetBorder.hasDefenders())
+                                    {//the border is crossed efortlessly
+                                        army.isOnBorder = false;
+                                        army.crrtProv = army.nextProv;
+                                        army.iconLocation.X = army.crrtProv.armyX;
+                                        army.iconLocation.Y = army.crrtProv.armyY;
+                                    }
+                                    else
+                                    {//we must breach the border
+                                        Neighbor border = army.targetBorder;
+                                        double dmg1 = border.getDamage();
+                                        double dmg2 = army.getAssaultDamage(border.hasDefenses());
+                                        border.eatDamage(dmg1);
+                                        army.eatAssaultDamage(dmg2, border.hasDefenses());
+                                        double ch = Math.Min(95, Math.Min(5, ((1-army.borderStance)*20 - border.getDefenseRating() * border.coverage()) * 5));
+                                        Console.WriteLine(dmg1+" "+dmg2+" "+ch);
+                                        if (rand.Next(100) < ch)//the border is breached
+                                        {
+                                            army.isOnBorder = false;
+                                            army.crrtProv = army.nextProv;
+                                            army.iconLocation.X = army.crrtProv.armyX;
+                                            army.iconLocation.Y = army.crrtProv.armyY;
+                                        }
+                                    }
+                                }
+                                if (army.nextProv != army.crrtProv)//inseamna ca ma duc undeva
+                                {
+                                    if (army.distToNext == 0)//we have arrived at the border with the next province
+                                    {//effects to be refined
+                                        //army.crrtProv = army.nextProv;
+                                        army.iconLocation.X = army.targetBorder.armyX;
+                                        army.iconLocation.Y = army.targetBorder.armyY;
+                                        army.isOnBorder = true;
+                                    }
+                                    army.march();
+                                }
+                            }
+                        }*/
+                        date.next();
+                        //Console.WriteLine("A day has passed!");
+                    }
+                    #endregion
+                }
+                break;
+
+                case MAIN_MENU:
+                {
+                    if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
+                    {//we've clicked on something
+                        int x = mouseStateCurrent.X, y = mouseStateCurrent.Y;
+                        if (newGameRect.Contains(x, y))
+                        {
+                            gameState = IN_GAME;
+                        }
+                        if (optionsRect.Contains(x, y))
+                        {
+                            gameState = OPTIONS_MENU;
+                            selectedScreenW = screenW;
+                            selectedScreenH = screenH;
+                        }
+                        if (quitRect.Contains(x, y))
+                        {
+                            this.Exit();
+                        }
+                    }
+                    mouseStatePrevious = mouseStateCurrent;
+                }
+                break;
+
+                case OPTIONS_MENU:
+                {
+                    if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
+                    {//we've clicked on something
+                        int x = mouseStateCurrent.X, y = mouseStateCurrent.Y;
+                        //if (resolutionRect.Contains(x, y))
+                        //{
+                        //    gameState = IN_GAME;
+                        //}
+                        if (applyRect.Contains(x, y))
+                        {
+                            gameState = MAIN_MENU;
+                        }
+                        if (backRect.Contains(x, y))
+                        {
+                            gameState = MAIN_MENU;
+                        }
+                    }
+                    mouseStatePrevious = mouseStateCurrent;
+                }
+                break;
             }
-            #endregion
+
+            musicPlayer.wazzap();//poke, poke (check that the music is still playing)
+            base.Update(gameTime);
         }
 
         //placed all drawing in a separate functions so we can reuse that code when taking screenshots
@@ -392,9 +506,11 @@ namespace joc_cu_romani_si_barbari
             {
                 foreach (Army army in nation.armies)
                 {
-                    spriteBatch.Draw(nation.armyIcon, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.9f);
+                    spriteBatch.Draw(nation.armyIcon, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.8f);
                 }
             }
+            foreach (Army army in selectedArmies)//we draw an appropriate selection halo for each selected army
+                spriteBatch.Draw(selectHalo, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.9f);
             spriteBatch.End();
 
             //desenam elementele statice in raport cu camera (adica nu sunt afectate de ViewMatrix-ul camerei)
@@ -413,9 +529,44 @@ namespace joc_cu_romani_si_barbari
         protected override void Draw(GameTime gameTime)
         {
             if (!isActive) return;//no need to draw when the game is not in focus
+            //watch.Restart();
             GraphicsDevice.Clear(Color.Black);
-            makeMinimap();
-            _draw();
+            switch (gameState)
+            {
+                case IN_GAME:
+                {
+                    makeMinimap();
+                    _draw();
+                }
+                break;
+                case MAIN_MENU:
+                {
+                    spriteBatch.Begin();
+                    spriteBatch.Draw(mainMenuTexture, new Rectangle(0, 0, screenW, screenH), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+                    spriteBatch.DrawString(font, "New Game", new Vector2(newGameRect.X, newGameRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "Options", new Vector2(optionsRect.X, optionsRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "Quit", new Vector2(quitRect.X, quitRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "v 0.01a", new Vector2((int)(screenW*0.9), (int)(screenH*0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.End();
+                }
+                break;
+                case OPTIONS_MENU:
+                {
+                    spriteBatch.Begin();
+                    spriteBatch.Draw(mainMenuTexture, new Rectangle(0, 0, screenW, screenH), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
+                    spriteBatch.Draw(leftArrow, leftArrowRect, null, Color.Yellow, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+                    spriteBatch.Draw(rightArrow, rightArrowRect, null, Color.Yellow, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
+                    spriteBatch.DrawString(font, "Resolution:", new Vector2(resolutionRect.X, resolutionRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, selectedScreenW + " x " + selectedScreenH, new Vector2(resolutionRect.X+resolutionRect.Width/2, resolutionRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "Apply", new Vector2(applyRect.X, applyRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "Back", new Vector2(backRect.X, backRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "v 0.01a", new Vector2((int)(screenW * 0.9), (int)(screenH * 0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.End();
+                }
+                break;
+            }
+            //watch.Stop();
+            //Console.WriteLine(watch.ElapsedTicks);
         }
 
         // from here - content loading functions called just once in the loadContent phase
@@ -496,6 +647,51 @@ namespace joc_cu_romani_si_barbari
                 }
             }
             file.Close();
+        }
+
+        private bool readConfigIni()
+        {
+            if (!File.Exists("config.ini"))
+            {
+                return false;//fail
+            }
+            StreamReader config = new StreamReader("config.ini");
+            String s = config.ReadLine();
+            if (s == null)
+            {
+                config.Close();
+                return false;
+            }
+            String[] word = s.Split('=');
+            if (word[0].CompareTo("Width") == 0)
+                screenW = this.graphics.PreferredBackBufferWidth = Convert.ToInt32(word[1]);
+            else
+            {
+                config.Close();
+                return false;
+            }
+            s = config.ReadLine();
+            if (s == null)
+            {
+                config.Close();
+                return false;
+            }
+            word = s.Split('=');
+            if (word[0].CompareTo("Height") == 0)
+                screenH = this.graphics.PreferredBackBufferHeight = Convert.ToInt32(word[1]);
+            else
+            {
+                config.Close();
+                return false;
+            }
+            config.Close();
+            // verificam ca latimea si inaltimea citite sa fie suportate
+            foreach (DisplayMode mode in GraphicsAdapter.DefaultAdapter.SupportedDisplayModes)
+            {
+                if (mode.Width == screenW && mode.Height == screenH)
+                    return true;
+            }
+            return false;
         }
     }
 }

@@ -11,7 +11,8 @@ namespace joc_cu_romani_si_barbari
         private Nation owner;
         private List<Unit> units = new List<Unit>();
         internal Neighbor targetBorder;//this is the border of the prov we're marching towards
-        internal Province crrtProv, nextProv;
+        internal Province crrtProv;
+        internal List<Province> path = new List<Province>();
         internal String name;
         internal int distToNext;//, prevX, prevY;
         internal Rectangle iconLocation;//the rectangle defining the coordinates where the army's icon will be drawn
@@ -37,7 +38,7 @@ namespace joc_cu_romani_si_barbari
         public Army(String name, Nation owner, Province crrt){
             this.name = name;
             this.owner = owner;
-            nextProv = crrtProv = crrt;
+            crrtProv = crrt;
             iconLocation = new Rectangle(crrt.armyX, crrt.armyY, 64, 64);
             state = IN_FRIENDLY_PROVINCE;
             borderStance = NORMAL;
@@ -48,7 +49,7 @@ namespace joc_cu_romani_si_barbari
         }
     
         public bool nextProvIsFriendly(){
-            return owner.equals(nextProv.owner);
+            return owner.equals(path[0].owner);
         }
 
         /// <summary>
@@ -56,11 +57,11 @@ namespace joc_cu_romani_si_barbari
         /// </summary>
         public void goTo(Province prov)
         {
-            nextProv = prov;
+            //nextProv = prov;
             //prevX = iconLocation.X;//in order to compute the army's trajectory, we need two points of reference:
             //prevY = iconLocation.Y;//the previous location and the next location (X, Y)
             //now we need to find out which border we use to get to prov (so we can get the distance we need to cover and the iconLocation)
-            foreach (Neighbor neigh in crrtProv.neighbors)
+            /*foreach (Neighbor neigh in crrtProv.neighbors)
             {
                 if (neigh.p == nextProv)//this is the border we're looking for
                 {
@@ -68,7 +69,7 @@ namespace joc_cu_romani_si_barbari
                     targetBorder = neigh;
                     break;
                 }
-            }
+            }*/
         }
 
         /// <summary>

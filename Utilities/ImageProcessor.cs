@@ -139,5 +139,48 @@ namespace joc_cu_romani_si_barbari.Utilities
             bmp.UnlockBits(data);
             bmp.Save("graphics\\map\\"+Game.provinces[provID].name+".png", System.Drawing.Imaging.ImageFormat.Png);
         }
+
+        public static unsafe void makeCircle(int r, int ctrX, int ctrY)
+        {
+            Bitmap bmp = new Bitmap(64, 64, PixelFormat.Format32bppArgb);
+            BitmapData data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            byte* b = (byte*)data.Scan0;//folosim un pointer ca sa parcurgem pas cu pas acest vector de date
+            int p = 0, h = bmp.Height, w = bmp.Width;
+            int rSquared = r * r, rMin1Squared = (r - 1) * (r), rPls1Squared = (r + 1) * (r), rPls2Squared = (r + 1) * (r+1);
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    int radius = (x-ctrX)*(x-ctrX) + (y-ctrY)*(y-ctrY);
+                    if (rMin1Squared < radius)// && radius < rPls1Squared
+                    {
+                        b[p++] = 120;
+                        b[p++] = 225;
+                        b[p++] = 225;
+                        double d = 255 * (2.0 - (double)radius / (double)rSquared);
+                        if (d > 255) d = 255;
+                        if (d < 100) d = 0;
+                        b[p++] = (byte)d;//alpha
+                        Console.WriteLine(d);
+                    }
+                    /*else if (rPls1Squared <= radius && radius < rPls2Squared)
+                    {
+                        b[p++] = 0;
+                        b[p++] = 0;
+                        b[p++] = 0;
+                        b[p++] = 200;//alpha
+                    }*/
+                    else
+                    {
+                        b[p++] = 0;
+                        b[p++] = 0;
+                        b[p++] = 0;
+                        b[p++] = 0;
+                    }
+                }
+            }
+            bmp.UnlockBits(data);
+            bmp.Save("graphics/army icons/circle.png", System.Drawing.Imaging.ImageFormat.Png);
+        }
     }
 }
