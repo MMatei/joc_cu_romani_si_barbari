@@ -2,12 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.GamerServices;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
 namespace joc_cu_romani_si_barbari.Utilities
@@ -18,7 +13,12 @@ namespace joc_cu_romani_si_barbari.Utilities
         private int crrtSong = 0;
         private Random rand = new Random();
 
-        public MusicPlayer(List<Song> _music)
+        public MusicPlayer(float volume)
+        {
+            MediaPlayer.Volume = volume;
+        }
+
+        public void newPlaylist(List<Song> _music)
         {
             music = new List<Song>();
             // shuffle da playlist
@@ -28,7 +28,6 @@ namespace joc_cu_romani_si_barbari.Utilities
                 music.Add(_music[index]);
                 _music.RemoveAt(index);
             }
-            MediaPlayer.Volume = 0.5f;
             MediaPlayer.Play(music[0]);
         }
 

@@ -78,6 +78,7 @@
     <Compile Include="2DCamera.cs" />
     <Compile Include="Army.cs" />
     <Compile Include="DefenseBuilding.cs" />
+    <Compile Include="OptionsMenu.cs" />
     <Compile Include="Tactic.cs" />
     <Compile Include="Utilities\AstarState.cs" />
     <Compile Include="Utilities\Date.cs" />

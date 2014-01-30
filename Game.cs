@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Globalization;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
@@ -35,7 +36,7 @@ namespace joc_cu_romani_si_barbari
         //private Texture2D uiProvinceBarBackground;
         //private Rectangle uiProvinceBarRect;
         private Texture2D coin;//money gfx
-        private SpriteFont font;
+        internal SpriteFont font;
         private RenderTarget2D minimapTexture;//http://rbwhitaker.wikidot.com/render-to-texture
 
         //input control
@@ -50,11 +51,9 @@ namespace joc_cu_romani_si_barbari
 
         // Main Menu variables
         private Rectangle newGameRect, optionsRect, quitRect;
-        private Texture2D mainMenuTexture;
-        // Options Menu variables
-        private Rectangle resolutionRect, applyRect, backRect, leftArrowRect, rightArrowRect;
-        private Texture2D leftArrow, rightArrow;
-        private int selectedScreenW, selectedScreenH;
+        internal Texture2D mainMenuTexture;
+        private OptionsMenu optionsMenu;
+        private SoundEffectInstance clickSFX;
 
         // other stuff
         private bool isActive;//if I alt-Tab, then the game deactivates and no longer responds to input
@@ -67,6 +66,10 @@ namespace joc_cu_romani_si_barbari
         private static Utilities.Date date;//aici tinem minte data curenta
         private Random rand = new Random();
         private Province prevSelectedProv = null;
+        //now here we have a bit of cultural shock ;))
+        //you see, C# Convert functions take into consideration cultural aspects when converting
+        public static CultureInfo cultureInfo = new CultureInfo("en-US");//thus we must ensure a standard; this is important for floats
+        //where there are varying notations, such as 1,0 and 1.0
 
         // gameplay variables - aici tinem vectori cu datele care trebuie tinute minte doar o data, intr-un singur loc
         internal static Province[] provinces;
@@ -90,9 +93,11 @@ namespace joc_cu_romani_si_barbari
             {
                 screenW = this.graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
                 screenH = this.graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+                musicPlayer = new Utilities.MusicPlayer(1.0f);
                 StreamWriter config = new StreamWriter("config.ini");
                 config.WriteLine("Width=" + screenW);
                 config.WriteLine("Height=" + screenH);
+                config.WriteLine("MusicVolume=1.0");
                 config.Close();
             }
             this.graphics.IsFullScreen = true;
@@ -125,20 +130,12 @@ namespace joc_cu_romani_si_barbari
         protected override void Initialize()
         {
             this.IsMouseVisible = true;
-            minimapTexture = new RenderTarget2D(GraphicsDevice,
-                            GraphicsDevice.PresentationParameters.BackBufferWidth,
-                            GraphicsDevice.PresentationParameters.BackBufferHeight,
-                            false,
-                            GraphicsDevice.PresentationParameters.BackBufferFormat,
-                            DepthFormat.Depth24);
+            minimapTexture = new RenderTarget2D(GraphicsDevice, screenW, screenH, false,
+                            GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
             newGameRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.4), (int)(screenW * 0.1), (int)(screenH * 0.05));
             optionsRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.5), (int)(screenW * 0.1), (int)(screenH * 0.05));
             quitRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
-            resolutionRect = new Rectangle((int)(screenW * 0.35), (int)(screenH * 0.4), (int)(screenW * 0.3), (int)(screenH * 0.05));
-            applyRect = new Rectangle((int)(screenW * 0.35), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
-            backRect = new Rectangle((int)(screenW * 0.55), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
-            leftArrowRect = new Rectangle((int)(resolutionRect.X+resolutionRect.Width/2-35), (int)(screenH * 0.395), 32, 32);
-            rightArrowRect = new Rectangle((int)(screenW * 0.6), (int)(screenH * 0.395), 32, 32);
+            optionsMenu = new OptionsMenu(screenW, screenH, GraphicsDevice);
             base.Initialize();
         }
 
@@ -162,8 +159,6 @@ namespace joc_cu_romani_si_barbari
             readScenario();
             // Load other textures
             mainMenuTexture = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/main menu.png", FileMode.Open));
-            leftArrow = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/left_arrow.png", FileMode.Open));
-            rightArrow = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/right_arrow.png", FileMode.Open));
             uiBackground = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/fish_mosaic.jpg", FileMode.Open));
             uiStatusBarRect = new Rectangle(100, 100, 300, 50);
             coin = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/coin.png", FileMode.Open));
@@ -206,16 +201,16 @@ namespace joc_cu_romani_si_barbari
                 }
             }
             // Initialize the camera with the map's dimensions
-            camera = new _2DCamera(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height, dim[0], dim[1], 1f, 0.5f, 1f);
+            camera = new _2DCamera(screenW, screenH, dim[0], dim[1], 1f, 0.5f, 1f);
+
+            // Load sound effects
+            SoundEffect clickEffect = Content.Load<SoundEffect>("click");
+            clickSFX = clickEffect.CreateInstance();
 
             // Initialize playlist
             List<Song> music = new List<Song>();
-            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 1"));
-            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 2"));
-            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 3"));
-            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 4"));
-            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 5"));
-            musicPlayer = new Utilities.MusicPlayer(music);
+            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Victory"));
+            musicPlayer.newPlaylist(music);
         }
 
         /// <summary>
@@ -414,16 +409,23 @@ namespace joc_cu_romani_si_barbari
                 {
                     if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
                     {//we've clicked on something
+                        clickSFX.Play();
                         int x = mouseStateCurrent.X, y = mouseStateCurrent.Y;
                         if (newGameRect.Contains(x, y))
                         {
                             gameState = IN_GAME;
+                            optionsMenu = null;//no longer useful
+                            List<Song> music = new List<Song>();
+                            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 1"));
+                            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 2"));
+                            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 3"));
+                            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 4"));
+                            music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 5"));
+                            musicPlayer.newPlaylist(music);
                         }
                         if (optionsRect.Contains(x, y))
                         {
                             gameState = OPTIONS_MENU;
-                            selectedScreenW = screenW;
-                            selectedScreenH = screenH;
                         }
                         if (quitRect.Contains(x, y))
                         {
@@ -438,16 +440,31 @@ namespace joc_cu_romani_si_barbari
                 {
                     if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
                     {//we've clicked on something
+                        clickSFX.Play();
                         int x = mouseStateCurrent.X, y = mouseStateCurrent.Y;
-                        //if (resolutionRect.Contains(x, y))
-                        //{
-                        //    gameState = IN_GAME;
-                        //}
-                        if (applyRect.Contains(x, y))
+                        if (optionsMenu.leftArrowRect.Contains(x, y))
                         {
-                            gameState = MAIN_MENU;
+                            optionsMenu.changeResolution(true);
                         }
-                        if (backRect.Contains(x, y))
+                        if (optionsMenu.rightArrowRect.Contains(x, y))
+                        {
+                            optionsMenu.changeResolution(false);
+                        }
+                        if (optionsMenu.applyRect.Contains(x, y))
+                        {
+                            screenW = graphics.PreferredBackBufferWidth = optionsMenu.supportedResolutions[optionsMenu.currentResolution].Width;
+                            screenH = graphics.PreferredBackBufferHeight = optionsMenu.supportedResolutions[optionsMenu.currentResolution].Height;
+                            graphics.ApplyChanges();
+                            scrollMarginRight = screenW - 40;
+                            scrollMarginDown = screenH - 40;
+                            camera.setViewport(screenW, screenH);
+                            newGameRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.4), (int)(screenW * 0.1), (int)(screenH * 0.05));
+                            optionsRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.5), (int)(screenW * 0.1), (int)(screenH * 0.05));
+                            quitRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
+                            optionsMenu.reset(screenW, screenH);
+                            minimapTexture = new RenderTarget2D(GraphicsDevice, screenW, screenH, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
+                        }
+                        if (optionsMenu.backRect.Contains(x, y))
                         {
                             gameState = MAIN_MENU;
                         }
@@ -506,11 +523,11 @@ namespace joc_cu_romani_si_barbari
             {
                 foreach (Army army in nation.armies)
                 {
-                    spriteBatch.Draw(nation.armyIcon, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.8f);
+                    spriteBatch.Draw(nation.armyIcon, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.9f);
                 }
             }
             foreach (Army army in selectedArmies)//we draw an appropriate selection halo for each selected army
-                spriteBatch.Draw(selectHalo, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.9f);
+                spriteBatch.Draw(selectHalo, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.8f);
             spriteBatch.End();
 
             //desenam elementele statice in raport cu camera (adica nu sunt afectate de ViewMatrix-ul camerei)
@@ -546,31 +563,22 @@ namespace joc_cu_romani_si_barbari
                     spriteBatch.DrawString(font, "New Game", new Vector2(newGameRect.X, newGameRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                     spriteBatch.DrawString(font, "Options", new Vector2(optionsRect.X, optionsRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                     spriteBatch.DrawString(font, "Quit", new Vector2(quitRect.X, quitRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                    spriteBatch.DrawString(font, "v 0.01a", new Vector2((int)(screenW*0.9), (int)(screenH*0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "v 0.01b", new Vector2((int)(screenW*0.9), (int)(screenH*0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                     spriteBatch.End();
                 }
                 break;
                 case OPTIONS_MENU:
                 {
-                    spriteBatch.Begin();
-                    spriteBatch.Draw(mainMenuTexture, new Rectangle(0, 0, screenW, screenH), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
-                    spriteBatch.Draw(leftArrow, leftArrowRect, null, Color.Yellow, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-                    spriteBatch.Draw(rightArrow, rightArrowRect, null, Color.Yellow, 0.0f, Vector2.Zero, SpriteEffects.None, 0.1f);
-                    spriteBatch.DrawString(font, "Resolution:", new Vector2(resolutionRect.X, resolutionRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                    spriteBatch.DrawString(font, selectedScreenW + " x " + selectedScreenH, new Vector2(resolutionRect.X+resolutionRect.Width/2, resolutionRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                    spriteBatch.DrawString(font, "Apply", new Vector2(applyRect.X, applyRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                    spriteBatch.DrawString(font, "Back", new Vector2(backRect.X, backRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                    spriteBatch.DrawString(font, "v 0.01a", new Vector2((int)(screenW * 0.9), (int)(screenH * 0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                    spriteBatch.End();
+                    optionsMenu.draw(spriteBatch, this, screenW, screenH);
                 }
                 break;
             }
             //watch.Stop();
-            //Console.WriteLine(watch.ElapsedTicks);
+            //Console.WriteLine(watch.ElapsedMilliseconds);
         }
 
         // from here - content loading functions called just once in the loadContent phase
-        private static void readScenario(){
+        private void readScenario(){
             char[] separator = {' ', ';'};
             StreamReader file = new System.IO.StreamReader("scenario.txt");
             //citesc data de inceput a jocului
@@ -589,7 +597,7 @@ namespace joc_cu_romani_si_barbari
                     while(s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
-                    provinces[i].prosperity = Convert.ToSingle(word[0]);
+                    provinces[i].prosperity = Convert.ToSingle(word[0], cultureInfo);
                     provinces[i].setOwner(nations[Convert.ToInt32(word[1])]);
                     //poate urma descrierea unei armate
                     s = file.ReadLine();
@@ -679,6 +687,20 @@ namespace joc_cu_romani_si_barbari
             word = s.Split('=');
             if (word[0].CompareTo("Height") == 0)
                 screenH = this.graphics.PreferredBackBufferHeight = Convert.ToInt32(word[1]);
+            else
+            {
+                config.Close();
+                return false;
+            }
+            s = config.ReadLine();
+            if (s == null)
+            {
+                config.Close();
+                return false;
+            }
+            word = s.Split('=');
+            if (word[0].CompareTo("MusicVolume") == 0)
+                musicPlayer = new Utilities.MusicPlayer(Convert.ToSingle(word[1], cultureInfo));
             else
             {
                 config.Close();

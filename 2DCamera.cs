@@ -77,6 +77,12 @@ namespace joc_cu_romani_si_barbari
             }
         }
 
+        public void setViewport(int w, int h)
+        {
+            _viewportWidth = w;
+            _viewportHeight = h;
+        }
+
         #endregion
 
         public Matrix GetTransformation()

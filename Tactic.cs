@@ -43,31 +43,31 @@ namespace joc_cu_romani_si_barbari
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     s = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries)[0];
-                    t.progress = Convert.ToSingle(s);
+                    t.progress = Convert.ToSingle(s, Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     String[] word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for(int j = 0; j < 7; j++)
-                        t.attackModif[j] = Convert.ToSingle(word[j]);
+                        t.attackModif[j] = Convert.ToSingle(word[j], Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for (int j = 0; j < 7; j++)
-                        t.defenseModif[j] = Convert.ToSingle(word[j]);
+                        t.defenseModif[j] = Convert.ToSingle(word[j], Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for (int j = 0; j < 7; j++)
-                        t.commitWeight[j] = Convert.ToInt32(word[j]);
+                        t.commitWeight[j] = Convert.ToInt32(word[j], Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for (int j = 0; j < 7; j++)
-                        t.reqPercentage[j] = Convert.ToSingle(word[j]);
+                        t.reqPercentage[j] = Convert.ToSingle(word[j], Game.cultureInfo);
                     meleeTactics[i] = t;
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
@@ -107,31 +107,31 @@ namespace joc_cu_romani_si_barbari
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     s = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries)[0];
-                    t.progress = Convert.ToSingle(s);
+                    t.progress = Convert.ToSingle(s, Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     String[] word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for (int j = 0; j < 7; j++)
-                        t.attackModif[j] = Convert.ToSingle(word[j]);
+                        t.attackModif[j] = Convert.ToSingle(word[j], Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for (int j = 0; j < 7; j++)
-                        t.defenseModif[j] = Convert.ToSingle(word[j]);
+                        t.defenseModif[j] = Convert.ToSingle(word[j], Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for (int j = 0; j < 7; j++)
-                        t.commitWeight[j] = Convert.ToInt32(word[j]);
+                        t.commitWeight[j] = Convert.ToInt32(word[j], Game.cultureInfo);
                     s = file.ReadLine();
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
                     word = s.Split(separator, System.StringSplitOptions.RemoveEmptyEntries);
                     for (int j = 0; j < 7; j++)
-                        t.reqPercentage[j] = Convert.ToSingle(word[j]);
+                        t.reqPercentage[j] = Convert.ToSingle(word[j], Game.cultureInfo);
                     skirmishTactics[i] = t;
                     while (s.StartsWith("#"))
                         s = file.ReadLine();
