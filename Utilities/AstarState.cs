@@ -42,5 +42,15 @@ namespace joc_cu_romani_si_barbari.Utilities
             }
             return l;
         }
+
+        /// <summary>
+        /// Functia calculeaza euristica h(n) care aproximeaza (optimist!) distanta pana la final
+        /// </summary>
+        public int approximateDistance(AstarState other)
+        {
+            // aproximarea foloseste coordonatele in pixeli la care plasam armatele pt a aproxima distanta intre 2 provincii
+            // aceasta euristica tine (si este optimista)
+            return (int) Math.Sqrt((prov.armyX - other.prov.armyX) * (prov.armyX - other.prov.armyX) + (prov.armyY - other.prov.armyY) * (prov.armyY - other.prov.armyY));
+        }
     }
 }

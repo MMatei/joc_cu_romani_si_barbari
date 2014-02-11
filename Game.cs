@@ -25,6 +25,8 @@ namespace joc_cu_romani_si_barbari
 
         // sound stuff
         private Utilities.MusicPlayer musicPlayer;
+        internal float soundVolume;
+        internal SoundEffectInstance clickSFX;
 
         // textures
         private Texture2D[] mapTexture;//the 2048x2048 (or less) rectangles forming our map
@@ -41,19 +43,18 @@ namespace joc_cu_romani_si_barbari
 
         //input control
         private bool spacebarNotPressed = true, prtscNotPressed = true;
-        private MouseState mouseStateCurrent, mouseStatePrevious;
+        internal MouseState mouseStatePrevious;
 
         // Game State - we need to keep track of where we are to know what to draw and what input to receive
-        private byte gameState;
-        private const byte MAIN_MENU = 1;
-        private const byte OPTIONS_MENU = 2;
-        private const byte IN_GAME = 3;
+        public byte gameState;
+        public const byte MAIN_MENU = 1;
+        public const byte OPTIONS_MENU = 2;
+        public const byte IN_GAME = 3;
 
         // Main Menu variables
         private Rectangle newGameRect, optionsRect, quitRect;
         internal Texture2D mainMenuTexture;
         private OptionsMenu optionsMenu;
-        private SoundEffectInstance clickSFX;
 
         // other stuff
         private bool isActive;//if I alt-Tab, then the game deactivates and no longer responds to input
@@ -66,10 +67,17 @@ namespace joc_cu_romani_si_barbari
         private static Utilities.Date date;//aici tinem minte data curenta
         private Random rand = new Random();
         private Province prevSelectedProv = null;
-        //now here we have a bit of cultural shock ;))
-        //you see, C# Convert functions take into consideration cultural aspects when converting
-        public static CultureInfo cultureInfo = new CultureInfo("en-US");//thus we must ensure a standard; this is important for floats
-        //where there are varying notations, such as 1,0 and 1.0
+        /// <summary>
+        /// now here we have a bit of cultural shock ;))
+        /// you see, C# Convert functions take into consideration cultural aspects when converting
+        /// thus we must ensure a standard; this is important for floats, where there are varying notations, such as 1,0 and 1.0
+        /// IMPORTANT: we don't use cultureInfo for config.ini, because some pinhead at M$ decided it'd be a good ideea
+        /// if WriteLine took into consideration culture by default, while at the same time not providing a way to change this moronic behaviour
+        /// as a bottom line, use culturalInfo wherever we read files shipped with the game - 'cause they're written using a global standard
+        /// don't use it when reading/writing local files - the local standard will suffice
+        /// If you have further questions on the subject, I suggest burning down your nearest M$ office.
+        /// </summary>
+        public static CultureInfo cultureInfo = new CultureInfo("en-US");
 
         // gameplay variables - aici tinem vectori cu datele care trebuie tinute minte doar o data, intr-un singur loc
         internal static Province[] provinces;
@@ -85,26 +93,26 @@ namespace joc_cu_romani_si_barbari
         System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
 
         public Game()
-        {
+        {// we need to initialize the graphics device here, so that we may use it in Initialize()
+            //XNA does stuff inbetween these two methods
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             //Read config file for saved options
-            if(!readConfigIni())
-            {
+            if(!readConfigIni())//if file doesn't exist/ read failed
+            {// we use default resolution and music/sound volumes
                 screenW = this.graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
                 screenH = this.graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
                 musicPlayer = new Utilities.MusicPlayer(1.0f);
+                soundVolume = 1.0f;
+                //then we write a valid config file
                 StreamWriter config = new StreamWriter("config.ini");
                 config.WriteLine("Width=" + screenW);
                 config.WriteLine("Height=" + screenH);
                 config.WriteLine("MusicVolume=1.0");
+                config.WriteLine("SoundVolume=1.0");
                 config.Close();
             }
             this.graphics.IsFullScreen = true;
-            scrollMarginRight = screenW - 40;
-            scrollMarginDown = screenH - 40;
-            mouseStatePrevious = Mouse.GetState();
-            gameState = MAIN_MENU;
         }
 
         #region Alt-Tab management
@@ -123,31 +131,31 @@ namespace joc_cu_romani_si_barbari
 
         /// <summary>
         /// Allows the game to perform any initialization it needs to before starting to run.
-        /// This is where it can query for any required services and load any non-graphic
-        /// related content.  Calling base.Initialize will enumerate through any components
-        /// and initialize them as well.
+        /// This is where it can query for any required services and load any non-graphic related content.
+        /// Calling base.Initialize will enumerate through any components and initialize them as well.
         /// </summary>
         protected override void Initialize()
         {
             this.IsMouseVisible = true;
+            spriteBatch = new SpriteBatch(GraphicsDevice);
             minimapTexture = new RenderTarget2D(GraphicsDevice, screenW, screenH, false,
                             GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
             newGameRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.4), (int)(screenW * 0.1), (int)(screenH * 0.05));
             optionsRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.5), (int)(screenW * 0.1), (int)(screenH * 0.05));
             quitRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
-            optionsMenu = new OptionsMenu(screenW, screenH, GraphicsDevice);
+            scrollMarginRight = screenW - 40;
+            scrollMarginDown = screenH - 40;
+            mouseStatePrevious = Mouse.GetState();
+            gameState = MAIN_MENU;
             base.Initialize();
         }
 
         /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
+        /// LoadContent will be called once per game and is the place to load all of your content.
         /// </summary>
         protected override void LoadContent()
         {
             //Utilities.ImageProcessor.makeCircle(24, 32, 32);
-            // Create a new SpriteBatch, which can be used to draw textures.
-            spriteBatch = new SpriteBatch(GraphicsDevice);
             
             // Read text files to form data cache
             Nation.readNations(GraphicsDevice);
@@ -205,7 +213,8 @@ namespace joc_cu_romani_si_barbari
 
             // Load sound effects
             SoundEffect clickEffect = Content.Load<SoundEffect>("click");
-            clickSFX = clickEffect.CreateInstance();
+            clickSFX = clickEffect.CreateInstance();//only an instance allows us to stop a sound effect mid-play
+            clickSFX.Volume = soundVolume;
 
             // Initialize playlist
             List<Song> music = new List<Song>();
@@ -223,15 +232,14 @@ namespace joc_cu_romani_si_barbari
         }
 
         /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
+        /// Allows the game to run logic such as updating the world, checking for collisions, gathering input, and playing audio.
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
             if (!isActive) return;//the game doesn't respond to input
             KeyboardState key = Keyboard.GetState();
-            mouseStateCurrent = Mouse.GetState();
+            MouseState mouseStateCurrent = Mouse.GetState();
 
             switch (gameState)
             {
@@ -263,7 +271,9 @@ namespace joc_cu_romani_si_barbari
                                 armySelected = true;
                             }
                         }
-                        if (!armySelected)
+                        if (armySelected)
+                            clickSFX.Play();
+                        else
                         {
                             p.setSelected();
                             prevSelectedProv = p;
@@ -273,7 +283,6 @@ namespace joc_cu_romani_si_barbari
                     {//order all selected armies to the indicated province
 
                     }
-                    mouseStatePrevious = mouseStateCurrent;
 
                     // Adjust zoom if the mouse wheel has moved
                     if (mouseStateCurrent.ScrollWheelValue > previousScroll)
@@ -409,12 +418,11 @@ namespace joc_cu_romani_si_barbari
                 {
                     if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
                     {//we've clicked on something
-                        clickSFX.Play();
                         int x = mouseStateCurrent.X, y = mouseStateCurrent.Y;
                         if (newGameRect.Contains(x, y))
                         {
+                            clickSFX.Play();
                             gameState = IN_GAME;
-                            optionsMenu = null;//no longer useful
                             List<Song> music = new List<Song>();
                             music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 1"));
                             music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Rome 2"));
@@ -425,54 +433,26 @@ namespace joc_cu_romani_si_barbari
                         }
                         if (optionsRect.Contains(x, y))
                         {
+                            clickSFX.Play();
                             gameState = OPTIONS_MENU;
+                            optionsMenu = new OptionsMenu(screenW, screenH, GraphicsDevice, spriteBatch, this, musicPlayer.getVolume());
                         }
                         if (quitRect.Contains(x, y))
                         {
+                            clickSFX.Play();
                             this.Exit();
                         }
                     }
-                    mouseStatePrevious = mouseStateCurrent;
                 }
                 break;
 
                 case OPTIONS_MENU:
                 {
-                    if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
-                    {//we've clicked on something
-                        clickSFX.Play();
-                        int x = mouseStateCurrent.X, y = mouseStateCurrent.Y;
-                        if (optionsMenu.leftArrowRect.Contains(x, y))
-                        {
-                            optionsMenu.changeResolution(true);
-                        }
-                        if (optionsMenu.rightArrowRect.Contains(x, y))
-                        {
-                            optionsMenu.changeResolution(false);
-                        }
-                        if (optionsMenu.applyRect.Contains(x, y))
-                        {
-                            screenW = graphics.PreferredBackBufferWidth = optionsMenu.supportedResolutions[optionsMenu.currentResolution].Width;
-                            screenH = graphics.PreferredBackBufferHeight = optionsMenu.supportedResolutions[optionsMenu.currentResolution].Height;
-                            graphics.ApplyChanges();
-                            scrollMarginRight = screenW - 40;
-                            scrollMarginDown = screenH - 40;
-                            camera.setViewport(screenW, screenH);
-                            newGameRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.4), (int)(screenW * 0.1), (int)(screenH * 0.05));
-                            optionsRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.5), (int)(screenW * 0.1), (int)(screenH * 0.05));
-                            quitRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
-                            optionsMenu.reset(screenW, screenH);
-                            minimapTexture = new RenderTarget2D(GraphicsDevice, screenW, screenH, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
-                        }
-                        if (optionsMenu.backRect.Contains(x, y))
-                        {
-                            gameState = MAIN_MENU;
-                        }
-                    }
-                    mouseStatePrevious = mouseStateCurrent;
+                    optionsMenu.update(key, mouseStateCurrent);
                 }
                 break;
             }
+            mouseStatePrevious = mouseStateCurrent;
 
             musicPlayer.wazzap();//poke, poke (check that the music is still playing)
             base.Update(gameTime);
@@ -563,13 +543,13 @@ namespace joc_cu_romani_si_barbari
                     spriteBatch.DrawString(font, "New Game", new Vector2(newGameRect.X, newGameRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                     spriteBatch.DrawString(font, "Options", new Vector2(optionsRect.X, optionsRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                     spriteBatch.DrawString(font, "Quit", new Vector2(quitRect.X, quitRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                    spriteBatch.DrawString(font, "v 0.01b", new Vector2((int)(screenW*0.9), (int)(screenH*0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                    spriteBatch.DrawString(font, "v 0.02", new Vector2((int)(screenW*0.9), (int)(screenH*0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                     spriteBatch.End();
                 }
                 break;
                 case OPTIONS_MENU:
                 {
-                    optionsMenu.draw(spriteBatch, this, screenW, screenH);
+                    optionsMenu.draw();
                 }
                 break;
             }
@@ -657,6 +637,11 @@ namespace joc_cu_romani_si_barbari
             file.Close();
         }
 
+        /// <summary>
+        /// Reads config.ini for information regarding screen resolution and music and sound volume.
+        /// It recognizes only a rigid structure and if any information is not there/ is corrupted the method will return false.
+        /// </summary>
+        /// <returns>If the read succeeded or not</returns>
         private bool readConfigIni()
         {
             if (!File.Exists("config.ini"))
@@ -665,7 +650,7 @@ namespace joc_cu_romani_si_barbari
             }
             StreamReader config = new StreamReader("config.ini");
             String s = config.ReadLine();
-            if (s == null)
+            if (s == null)//linia nu exista => fail
             {
                 config.Close();
                 return false;
@@ -700,7 +685,21 @@ namespace joc_cu_romani_si_barbari
             }
             word = s.Split('=');
             if (word[0].CompareTo("MusicVolume") == 0)
-                musicPlayer = new Utilities.MusicPlayer(Convert.ToSingle(word[1], cultureInfo));
+                musicPlayer = new Utilities.MusicPlayer(Convert.ToSingle(word[1]));
+            else
+            {
+                config.Close();
+                return false;
+            }
+            s = config.ReadLine();
+            if (s == null)
+            {
+                config.Close();
+                return false;
+            }
+            word = s.Split('=');
+            if (word[0].CompareTo("SoundVolume") == 0)
+                soundVolume = Convert.ToSingle(word[1]);
             else
             {
                 config.Close();
@@ -714,6 +713,35 @@ namespace joc_cu_romani_si_barbari
                     return true;
             }
             return false;
+        }
+
+        internal void applySettings()
+        {
+            if (optionsMenu.resolutionChanged)
+            {
+                screenW = graphics.PreferredBackBufferWidth = optionsMenu.supportedResolutions[optionsMenu.currentResolution].Width;
+                screenH = graphics.PreferredBackBufferHeight = optionsMenu.supportedResolutions[optionsMenu.currentResolution].Height;
+                graphics.ApplyChanges();
+                scrollMarginRight = screenW - 40;
+                scrollMarginDown = screenH - 40;
+                camera.setViewport(screenW, screenH);
+                newGameRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.4), (int)(screenW * 0.1), (int)(screenH * 0.05));
+                optionsRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.5), (int)(screenW * 0.1), (int)(screenH * 0.05));
+                quitRect = new Rectangle((int)(screenW * 0.45), (int)(screenH * 0.6), (int)(screenW * 0.1), (int)(screenH * 0.05));
+                optionsMenu.reset(screenW, screenH);
+                minimapTexture = new RenderTarget2D(GraphicsDevice, screenW, screenH, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
+            }
+            //modifica audio
+            musicPlayer.setVolume(optionsMenu.musicVolume.Value / 100);
+            soundVolume = optionsMenu.soundVolume.Value / 100;
+            clickSFX.Volume = soundVolume;
+            //modifica setarile default din config
+            StreamWriter config = new StreamWriter("config.ini");
+            config.WriteLine("Width=" + screenW);
+            config.WriteLine("Height=" + screenH);
+            config.WriteLine("MusicVolume=" + musicPlayer.getVolume());
+            config.WriteLine("SoundVolume=" + soundVolume);
+            config.Close();
         }
     }
 }

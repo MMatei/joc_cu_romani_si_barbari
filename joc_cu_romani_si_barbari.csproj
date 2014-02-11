@@ -78,10 +78,11 @@
     <Compile Include="2DCamera.cs" />
     <Compile Include="Army.cs" />
     <Compile Include="DefenseBuilding.cs" />
-    <Compile Include="OptionsMenu.cs" />
+    <Compile Include="Utilities\OptionsMenu.cs" />
     <Compile Include="Tactic.cs" />
     <Compile Include="Utilities\AstarState.cs" />
     <Compile Include="Utilities\Date.cs" />
+    <Compile Include="Utilities\HelperComponent.cs" />
     <Compile Include="Utilities\ImageProcessor.cs" />
     <Compile Include="Nation.cs" />
     <Compile Include="Neighbor.cs" />
@@ -92,6 +93,7 @@
     <Compile Include="Unit.cs" />
     <Compile Include="UnitStats.cs" />
     <Compile Include="Utilities\MusicPlayer.cs" />
+    <Compile Include="Utilities\SliderComponent.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Game.ico" />

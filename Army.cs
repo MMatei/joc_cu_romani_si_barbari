@@ -14,7 +14,7 @@ namespace joc_cu_romani_si_barbari
         internal Province crrtProv;
         internal List<Province> path = new List<Province>();
         internal String name;
-        internal int distToNext;//, prevX, prevY;
+        internal int distToNextProv;
         internal Rectangle iconLocation;//the rectangle defining the coordinates where the army's icon will be drawn
 
         internal byte state;//one of the following statics:
@@ -77,8 +77,8 @@ namespace joc_cu_romani_si_barbari
         /// </summary>
         public void march()
         {//first, update the distToNext
-            distToNext -= 10;//fixed distance -- perhaps later take army speed into account
-            if (distToNext < 0) distToNext = 0;
+            distToNextProv -= 10;//fixed distance -- perhaps later take army speed into account
+            if (distToNextProv < 0) distToNextProv = 0;
             //then, reposition the army's icon so that it reflects the progress made
             //the cast is neccessary, because otherwise the compiler would interpret it as a division between integers => an integer result
             //float progress = 1.0f - ((float)distToNext / (float)target.distance);
