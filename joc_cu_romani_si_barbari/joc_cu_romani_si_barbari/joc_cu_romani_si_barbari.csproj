@@ -79,6 +79,7 @@
     <Compile Include="Army.cs" />
     <Compile Include="DefenseBuilding.cs" />
     <Compile Include="Game_draw.cs" />
+    <Compile Include="Game_update.cs" />
     <Compile Include="Utilities\OptionsMenu.cs" />
     <Compile Include="Tactic.cs" />
     <Compile Include="Utilities\AstarState.cs" />
