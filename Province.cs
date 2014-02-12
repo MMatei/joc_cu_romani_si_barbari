@@ -100,5 +100,9 @@ namespace joc_cu_romani_si_barbari
             color.G = owner.color.G;
             color.B = owner.color.B;
         }
+        public override string ToString()
+        {
+            return name;
+        }
     }
 }

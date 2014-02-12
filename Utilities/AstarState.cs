@@ -38,7 +38,9 @@ namespace joc_cu_romani_si_barbari.Utilities
             List<AstarState> l = new List<AstarState>();
             foreach (Neighbor n in prov.neighbors)
             {
-                l.Add(new AstarState(n.p, this, distance + n.distance));
+                //the distance between provinces A and B is the distance from A to its border with B
+                // + the distance from B to its border with A
+                l.Add(new AstarState(n.otherProv, this, distance + n.distance + n.otherSide.distance));
             }
             return l;
         }
@@ -49,8 +51,53 @@ namespace joc_cu_romani_si_barbari.Utilities
         public int approximateDistance(AstarState other)
         {
             // aproximarea foloseste coordonatele in pixeli la care plasam armatele pt a aproxima distanta intre 2 provincii
-            // aceasta euristica tine (si este optimista)
+            // aceasta euristica tine (si este optimista) cat timp un pixel reprezinta > 1km
             return (int) Math.Sqrt((prov.armyX - other.prov.armyX) * (prov.armyX - other.prov.armyX) + (prov.armyY - other.prov.armyY) * (prov.armyY - other.prov.armyY));
+        }
+
+        public static void solve(Province start, Province end)
+        {
+            SortedSet<AstarState> open = new SortedSet<AstarState>(new AstarComparator());
+            AstarState initialState = new AstarState(start);
+            open.Add(initialState);
+            List<AstarState> closed = new List<AstarState>();
+            while (open.Count > 0)
+            {
+                AstarState state = open.Min;
+                open.Remove(open.Min);
+                if (state.prov.equals(end))
+                {
+                    printReversePath(state);
+                    break;
+                }
+                List<AstarState> neighbors = state.expand();
+                closed.Add(state);
+                foreach (AstarState s in neighbors)
+                {
+                    if (!closed.Contains(s))
+                        open.Add(s);
+                }
+            }
+        }
+
+        private static void printReversePath(AstarState current)
+        {
+		    if(current == null) return;
+		    printReversePath(current.parent);
+		    Console.WriteLine(current.prov);
+	    }
+
+        public override bool Equals(object obj)
+        {
+            return this.prov.equals(((AstarState)obj).prov);
+        }
+    }
+
+    class AstarComparator : IComparer<AstarState>
+    {
+        public int Compare(AstarState a, AstarState b)
+        {
+            return a.distance - b.distance;
         }
     }
 }

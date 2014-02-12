@@ -7,18 +7,31 @@ namespace joc_cu_romani_si_barbari
 {
     class Neighbor
     {
-        internal Province p;//this class belongs to Province p2 and p is adjacent to p2
-        internal int borderLength, naturalDef, distance, armyX, armyY;
+        internal Province otherProv;//this class belongs to Province thisProv and otherProv is adjacent to thisProv
+        internal Neighbor otherSide;//the border of p
+        internal int borderLength, naturalDef, distance, armyX, armyY;//distance is from center of thisProv to this border
         private DefenseBuilding defBuilding;
         private List<Unit> defUnits = new List<Unit>();
     
         public Neighbor(Province p, int length, int def, int dist, int x, int y){
-            this.p = p;
+            this.otherProv = p;
             borderLength = length;
             naturalDef = def;
             distance = dist;
             armyX = x;
             armyY = y;
+        }
+
+        public void findOtherSide(Province thisProv)
+        {
+            foreach(Neighbor n in otherProv.neighbors)
+            {
+                if (n.otherProv == thisProv)
+                {
+                    otherSide = n;
+                    return;
+                }
+            }
         }
     
         public void addDefBuilding(DefenseBuilding b){
