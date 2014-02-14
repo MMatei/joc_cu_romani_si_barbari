@@ -33,6 +33,8 @@ namespace joc_cu_romani_si_barbari
         private int mapTextureLength;
         private Texture2D uiBackground;//the texture which will serve as background for all UI elements
         private Rectangle uiStatusBarRect;//the portion of the texture used for the status bar
+        private Texture2D uiProvinceDetailTexture;
+        private Rectangle uiProvinceDetailRect;
         private Texture2D selectHalo;
         //private Texture2D uiProvinceBarBackground;
         //private Rectangle uiProvinceBarRect;
@@ -168,6 +170,8 @@ namespace joc_cu_romani_si_barbari
             mainMenuTexture = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/main menu.png", FileMode.Open));
             uiBackground = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/fish_mosaic.jpg", FileMode.Open));
             uiStatusBarRect = new Rectangle(100, 100, 300, 50);
+            uiProvinceDetailTexture = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/scroll.png", FileMode.Open));
+            uiProvinceDetailRect = new Rectangle(0, (int)(screenH * 0.67), screenW, (int)(screenH * 0.33));
             coin = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/coin.png", FileMode.Open));
             selectHalo = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/army icons/circle.png", FileMode.Open));
             font = Content.Load<SpriteFont>("SpriteFont1");

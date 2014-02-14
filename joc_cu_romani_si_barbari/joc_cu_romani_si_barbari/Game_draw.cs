@@ -76,6 +76,7 @@ namespace joc_cu_romani_si_barbari
             spriteBatch.DrawString(font, nations[player].money + "", new Vector2(screenW - 250, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(font, date.ToString(), new Vector2(screenW - 100, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.Draw(minimapTexture, new Rectangle(screenW - 300, 50, 300, 150), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
+            spriteBatch.Draw(uiProvinceDetailTexture, uiProvinceDetailRect, null, Color.White, 0.0f,Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.End();
         }
         /// <summary>
