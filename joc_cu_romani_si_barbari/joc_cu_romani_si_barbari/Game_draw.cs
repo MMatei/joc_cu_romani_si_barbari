@@ -71,12 +71,25 @@ namespace joc_cu_romani_si_barbari
 
             //desenam elementele statice in raport cu camera (adica nu sunt afectate de ViewMatrix-ul camerei)
             spriteBatch.Begin();
-            spriteBatch.Draw(uiBackground, new Rectangle(screenW - 300, 0, 300, 50), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
-            spriteBatch.Draw(coin, new Rectangle(screenW - 290, 10, 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(font, nations[player].money + "", new Vector2(screenW - 250, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(font, date.ToString(), new Vector2(screenW - 100, 10), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-            spriteBatch.Draw(minimapTexture, new Rectangle(screenW - 300, 50, 300, 150), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
+            //spriteBatch.Draw(uiBackground, new Rectangle(screenW - 300, screenH - 200, 300, 50), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
+            //spriteBatch.Draw(coin, new Rectangle(screenW - 290, screenH - 190, 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
+            //spriteBatch.DrawString(font, nations[player].money + "", new Vector2(screenW - 250, screenH - 190), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            //spriteBatch.DrawString(font, date.ToString(), new Vector2(screenW - 100, screenH - 190), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            //spriteBatch.Draw(minimapTexture, new Rectangle(screenW - 300, screenH-150, 300, 150), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.Draw(uiProvinceDetailTexture, uiProvinceDetailRect, null, Color.White, 0.0f,Vector2.Zero, SpriteEffects.None, 1.0f);
+            spriteBatch.Draw(coin, new Rectangle((int)(screenW * 0.75), (int)(screenH * 0.7), 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, "Imperial Ledger", new Vector2((int)(screenW * 0.48), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            if (prevSelectedProv != null)
+            {
+                spriteBatch.DrawString(font, prevSelectedProv.name + "", new Vector2((int)(screenW * 0.1), (int)(screenH * 0.75)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                spriteBatch.DrawString(font, "Prosperity: " + prevSelectedProv.prosperity + "", new Vector2((int)(screenW * 0.1), (int)(screenH * 0.8)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                prevSelectedProv.armies.ForEach(delegate(Army army)
+                {
+                    spriteBatch.DrawString(font, "Stationed armies: " + army.name + "", new Vector2((int)(screenW * 0.1), (int)(screenH * 0.85)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                });
+            }
+            spriteBatch.DrawString(font, nations[player].money + "", new Vector2((int)(screenW * 0.775) , (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, date.ToString(), new Vector2((int)(screenW * 0.9), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.End();
         }
         /// <summary>
