@@ -260,7 +260,7 @@ namespace joc_cu_romani_si_barbari
                     s = file.ReadLine();
                     while(s.StartsWith("#"))
                         s = file.ReadLine();
-                    if(s.EndsWith("{")){//is army
+                    while(s.EndsWith("{")){//is army
                         s = file.ReadLine();
                         while(s.StartsWith("#"))
                             s = file.ReadLine();
