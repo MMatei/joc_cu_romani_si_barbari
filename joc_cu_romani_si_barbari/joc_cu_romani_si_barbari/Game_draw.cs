@@ -51,7 +51,7 @@ namespace joc_cu_romani_si_barbari
         //Draw the world map to screen, along with the UI
         private void _draw()
         {
-            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, null, null, null, null, camera.GetTransformation());
+            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, null, null, null, null, camera.GetTransformation());
             spriteBatch.Draw(provinces[0].background, provinces[0].position, null, provinces[0].color, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
             for (int i = 1; i < provinces.Length; i++)
                 spriteBatch.Draw(provinces[i].background, provinces[i].position, null, provinces[i].color, 0.0f, Vector2.Zero, SpriteEffects.None, 0.05f);
