@@ -36,8 +36,7 @@ namespace joc_cu_romani_si_barbari
         private Texture2D uiProvinceDetailTexture;
         private Rectangle uiProvinceDetailRect;
         private Texture2D selectHalo;
-        //private Texture2D uiProvinceBarBackground;
-        //private Rectangle uiProvinceBarRect;
+        private Texture2D pathBar, dot;
         private Texture2D coin;//money gfx
         internal SpriteFont font;
         private RenderTarget2D minimapTexture;//http://rbwhitaker.wikidot.com/render-to-texture
@@ -174,6 +173,8 @@ namespace joc_cu_romani_si_barbari
             uiProvinceDetailRect = new Rectangle(0, (int)(screenH * 0.67), screenW, (int)(screenH * 0.33));
             coin = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/coin.png", FileMode.Open));
             selectHalo = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/army icons/circle.png", FileMode.Open));
+            pathBar = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/pathBar.png", FileMode.Open));
+            dot = Texture2D.FromStream(GraphicsDevice, new FileStream("graphics/dot.png", FileMode.Open));
             font = Content.Load<SpriteFont>("SpriteFont1");
             // Load map matrix from map.bin
             int[] dim = new int[2];

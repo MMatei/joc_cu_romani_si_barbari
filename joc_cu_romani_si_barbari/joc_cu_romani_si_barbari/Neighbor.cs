@@ -32,6 +32,7 @@ namespace joc_cu_romani_si_barbari
                     return;
                 }
             }
+            Console.WriteLine("Didn't find border from " + otherProv + " to " + thisProv);
         }
     
         public void addDefBuilding(DefenseBuilding b){

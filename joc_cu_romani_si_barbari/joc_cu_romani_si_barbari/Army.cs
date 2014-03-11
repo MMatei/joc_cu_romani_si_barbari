@@ -55,7 +55,7 @@ namespace joc_cu_romani_si_barbari
         /// <summary>
         /// this function sets the neccessary paramaters for the army to march to Province prov
         /// </summary>
-        public void goTo(Province prov)
+        public void goTo(Province destination)
         {
             //nextProv = prov;
             //prevX = iconLocation.X;//in order to compute the army's trajectory, we need two points of reference:
@@ -70,6 +70,7 @@ namespace joc_cu_romani_si_barbari
                     break;
                 }
             }*/
+            path = Utilities.AstarState.solve(crrtProv, destination);
         }
 
         /// <summary>

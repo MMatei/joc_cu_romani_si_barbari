@@ -65,17 +65,40 @@ namespace joc_cu_romani_si_barbari
                     spriteBatch.Draw(nation.armyIcon, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.9f);
                 }
             }
-            foreach (Army army in selectedArmies)//we draw an appropriate selection halo for each selected army
+            Vector2 rotPoint = new Vector2(0, 15);//punctul in dreptunghiul barei de mers in jurul caruia se face rotirea
+            foreach (Army army in selectedArmies)
+            {
+                //we draw an appropriate selection halo for each selected army
                 spriteBatch.Draw(selectHalo, army.iconLocation, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.8f);
+                //now we represent the path of an army via yellow lines
+                if (army.path == null)
+                    continue;
+                Province crrtProv = army.crrtProv;
+                foreach (Province nextProv in army.path)
+                {
+                    float width = (float)Math.Sqrt((crrtProv.armyX - nextProv.armyX) * (crrtProv.armyX - nextProv.armyX) + (crrtProv.armyY - nextProv.armyY) * (crrtProv.armyY - nextProv.armyY));
+                    float angle;//unghiul fata de orizontala la care se afla dreapta dintre crrtProv si nextProv
+                    //cum trigonometria mea e pe butuci, habar-n-am de ce functioneaza secventa urmatoare
+                    //daca gasesti ceva mai elegant, be my guest
+                    if (nextProv.armyX < crrtProv.armyX)
+                    {
+                        if(nextProv.armyY < crrtProv.armyY)
+                            angle = (float)Math.Asin((float)(nextProv.armyX - crrtProv.armyX) / width) - (float)(Math.PI / 2);
+                        else
+                            angle = (float)Math.Acos((float)(nextProv.armyX - crrtProv.armyX) / width);
+                    }
+                    else
+                        angle = (float)Math.Asin((float)(nextProv.armyY - crrtProv.armyY) / width);
+                    spriteBatch.Draw(pathBar, new Rectangle(crrtProv.armyX, crrtProv.armyY, (int)width, 31), null, Color.White, angle, new Vector2(0, 15), SpriteEffects.None, 0.8f);
+                    //punem la capat si un punctulet care sa acopere imperfectiunile liniilor
+                    spriteBatch.Draw(dot, new Rectangle(nextProv.armyX-8, nextProv.armyY-8, 16, 16), null, Color.White, 0, Vector2.Zero, SpriteEffects.None, 0.81f);
+                    crrtProv = nextProv;
+                }
+            }
             spriteBatch.End();
 
             //desenam elementele statice in raport cu camera (adica nu sunt afectate de ViewMatrix-ul camerei)
             spriteBatch.Begin();
-            //spriteBatch.Draw(uiBackground, new Rectangle(screenW - 300, screenH - 200, 300, 50), uiStatusBarRect, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 0.95f);
-            //spriteBatch.Draw(coin, new Rectangle(screenW - 290, screenH - 190, 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
-            //spriteBatch.DrawString(font, nations[player].money + "", new Vector2(screenW - 250, screenH - 190), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-            //spriteBatch.DrawString(font, date.ToString(), new Vector2(screenW - 100, screenH - 190), Color.White, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-            //spriteBatch.Draw(minimapTexture, new Rectangle(screenW - 300, screenH-150, 300, 150), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.Draw(uiProvinceDetailTexture, uiProvinceDetailRect, null, Color.White, 0.0f,Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.Draw(coin, new Rectangle((int)(screenW * 0.75), (int)(screenH * 0.7), 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(font, "Imperial Ledger", new Vector2((int)(screenW * 0.48), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);

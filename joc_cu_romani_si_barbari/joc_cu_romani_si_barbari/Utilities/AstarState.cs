@@ -48,16 +48,16 @@ namespace joc_cu_romani_si_barbari.Utilities
         /// <summary>
         /// Functia calculeaza euristica h(n) care aproximeaza (optimist!) distanta pana la final
         /// </summary>
-        public int approximateDistance(AstarState other)
+        public int approximateDistance(Province dest)
         {
             // aproximarea foloseste coordonatele in pixeli la care plasam armatele pt a aproxima distanta intre 2 provincii
             // aceasta euristica tine (si este optimista) cat timp un pixel reprezinta > 1km
-            return (int) Math.Sqrt((prov.armyX - other.prov.armyX) * (prov.armyX - other.prov.armyX) + (prov.armyY - other.prov.armyY) * (prov.armyY - other.prov.armyY));
+            return (int)Math.Sqrt((prov.armyX - dest.armyX) * (prov.armyX - dest.armyX) + (prov.armyY - dest.armyY) * (prov.armyY - dest.armyY));
         }
 
-        public static void solve(Province start, Province end)
+        public static List<Province> solve(Province start, Province end)
         {
-            SortedSet<AstarState> open = new SortedSet<AstarState>(new AstarComparator());
+            SortedSet<AstarState> open = new SortedSet<AstarState>(new AstarComparator(end));
             AstarState initialState = new AstarState(start);
             open.Add(initialState);
             List<AstarState> closed = new List<AstarState>();
@@ -67,8 +67,16 @@ namespace joc_cu_romani_si_barbari.Utilities
                 open.Remove(open.Min);
                 if (state.prov.equals(end))
                 {
-                    printReversePath(state);
-                    break;
+                    //printReversePath(state);
+                    List<Province> path = new List<Province>();
+                    while (state.parent != null)
+                    {
+                        path.Add(state.prov);
+                        Console.WriteLine(state.prov);
+                        state = state.parent;
+                    }
+                    path.Reverse();
+                    return path;
                 }
                 List<AstarState> neighbors = state.expand();
                 closed.Add(state);
@@ -78,6 +86,7 @@ namespace joc_cu_romani_si_barbari.Utilities
                         open.Add(s);
                 }
             }
+            return null;
         }
 
         private static void printReversePath(AstarState current)
@@ -95,9 +104,15 @@ namespace joc_cu_romani_si_barbari.Utilities
 
     class AstarComparator : IComparer<AstarState>
     {
+        private Province destination;
+        public AstarComparator(Province dest)
+        {
+            destination = dest;
+        }
         public int Compare(AstarState a, AstarState b)
         {
-            return a.distance - b.distance;
+            //Possible optimization: pre-compute approximateDistance
+            return (a.distance + a.approximateDistance(destination)) - (b.distance + b.approximateDistance(destination));
         }
     }
 }

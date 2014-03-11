@@ -67,7 +67,16 @@ namespace joc_cu_romani_si_barbari
                         }
                         if (mouseStateCurrent.RightButton == ButtonState.Pressed && mouseStatePrevious.RightButton == ButtonState.Released)
                         {//order all selected armies to the indicated province
-
+                            Vector2 q1 = new Vector2();
+                            Vector2 q2 = new Vector2();
+                            q1.X = mouseStateCurrent.X;
+                            q1.Y = mouseStateCurrent.Y;
+                            q2 = camera.ScreenToWorld(q1);
+                            Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];
+                            foreach (Army army in selectedArmies)
+                            {
+                                army.goTo(p);
+                            }
                         }
 
                         // Adjust zoom if the mouse wheel has moved
