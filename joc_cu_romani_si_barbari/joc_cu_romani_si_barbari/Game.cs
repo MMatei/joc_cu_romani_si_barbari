@@ -19,6 +19,7 @@ namespace joc_cu_romani_si_barbari
     public partial class Game : Microsoft.Xna.Framework.Game
     {
         #region Variable declarations
+        public const string version = "v 0.03";
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
 
@@ -42,8 +43,8 @@ namespace joc_cu_romani_si_barbari
         private RenderTarget2D minimapTexture;//http://rbwhitaker.wikidot.com/render-to-texture
 
         //input control
-        private bool spacebarNotPressed = true, prtscNotPressed = true;
         internal MouseState mouseStatePrevious;
+        internal KeyboardState keyPrevious;
 
         // Game State - we need to keep track of where we are to know what to draw and what input to receive
         public byte gameState;

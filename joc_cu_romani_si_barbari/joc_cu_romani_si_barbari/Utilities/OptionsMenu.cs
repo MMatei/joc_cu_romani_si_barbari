@@ -142,7 +142,7 @@ namespace joc_cu_romani_si_barbari
             spriteBatch.DrawString(game.font, supportedResolutions[currentResolution].Width + " x " + supportedResolutions[currentResolution].Height, new Vector2(resolutionRect.X + 150, resolutionRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(game.font, "Apply", new Vector2(applyRect.X, applyRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(game.font, "Back", new Vector2(backRect.X, backRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(game.font, "v 0.02b", new Vector2((int)(screenW * 0.9), (int)(screenH * 0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(game.font, Game.version, new Vector2((int)(screenW * 0.9), (int)(screenH * 0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             musicVolume.draw();
             soundVolume.draw();
             spriteBatch.End();

@@ -57,20 +57,20 @@ namespace joc_cu_romani_si_barbari
         /// </summary>
         public void goTo(Province destination)
         {
-            //nextProv = prov;
-            //prevX = iconLocation.X;//in order to compute the army's trajectory, we need two points of reference:
-            //prevY = iconLocation.Y;//the previous location and the next location (X, Y)
-            //now we need to find out which border we use to get to prov (so we can get the distance we need to cover and the iconLocation)
-            /*foreach (Neighbor neigh in crrtProv.neighbors)
-            {
-                if (neigh.p == nextProv)//this is the border we're looking for
-                {
-                    distToNext = neigh.distance;
-                    targetBorder = neigh;
-                    break;
-                }
-            }*/
             path = Utilities.AstarState.solve(crrtProv, destination);
+            if (path == null) return;//se poate sa dau o destinatie invalida, sau destination == crrtProv
+            //gasesc granita catre care merg - am nevoie de ea pt distanta, coord de afisare armata, si sa
+            //verific apararile nextProv
+            Province nextProv = path[0];
+            foreach (Neighbor neigh in crrtProv.neighbors)
+            {
+                if (neigh.otherProv == nextProv)//this is the border we're looking for
+                {
+                    distToNextProv = neigh.distance;
+                    targetBorder = neigh;
+                    return;
+                }
+            }
         }
 
         /// <summary>

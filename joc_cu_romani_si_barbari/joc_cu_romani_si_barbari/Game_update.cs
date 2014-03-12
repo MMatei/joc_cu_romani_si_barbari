@@ -24,12 +24,11 @@ namespace joc_cu_romani_si_barbari
         protected override void Update(GameTime gameTime)
         {
             if (!isActive) return;//the game doesn't respond to input
-            KeyboardState key = Keyboard.GetState();
+            KeyboardState keyCurrent = Keyboard.GetState();
             MouseState mouseStateCurrent = Mouse.GetState();
 
             switch (gameState)
             {
-
                 case IN_GAME:
                     {
                         #region Responding to input
@@ -100,53 +99,26 @@ namespace joc_cu_romani_si_barbari
                             movement.Y++;
 
                         // Move the camera when the arrow keys are pressed
-                        if (key.IsKeyDown(Keys.Left))
+                        if (keyCurrent.IsKeyDown(Keys.Left))
                             movement.X--;
-                        if (key.IsKeyDown(Keys.Right))
+                        if (keyCurrent.IsKeyDown(Keys.Right))
                             movement.X++;
-                        if (key.IsKeyDown(Keys.Up))
+                        if (keyCurrent.IsKeyDown(Keys.Up))
                             movement.Y--;
-                        if (key.IsKeyDown(Keys.Down))
+                        if (keyCurrent.IsKeyDown(Keys.Down))
                             movement.Y++;
-                        if (key.IsKeyDown(Keys.Space))
-                        {
-                            if (spacebarNotPressed)
-                            {
-                                spacebarNotPressed = false;
-                                Console.WriteLine("bazoongas!");
-                                /*provinces[40].owner = nations[1];
-                                startX = provinces[40].startX;
-                                startY = provinces[40].startY;
-                                endX = provinces[40].endX;
-                                endY = provinces[40].endY;
-                                Thread t = new Thread(new ThreadStart(run));
-                                t.Start();*/
-                                //nations[3].armies[0].borderStance = Army.ANNIHILATE;
-                                //nations[3].armies[0].goTo(provinces[11]);
-                                //nations[1].armies[0].goTo(provinces[6]);
-                            }
-                        }
-                        else spacebarNotPressed = true;
                         #region PrintScreen
-                        if (key.IsKeyDown(Keys.PrintScreen))
+                        if (keyCurrent.IsKeyDown(Keys.PrintScreen) && keyPrevious.IsKeyUp(Keys.PrintScreen))
                         {
-                            if (prtscNotPressed)
-                            {
-                                prtscNotPressed = false;
-                                GraphicsDevice.Clear(Color.CornflowerBlue);
-                                makeMinimap();
-                                RenderTarget2D screenshot = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
-
-                                GraphicsDevice.SetRenderTarget(screenshot);
-                                _draw();
-                                GraphicsDevice.SetRenderTarget(null);
-                                screenshot.SaveAsPng(new FileStream("screenie.png", FileMode.Create), screenW, screenH);
-                            }
+                            RenderTarget2D screenshot = new RenderTarget2D(GraphicsDevice, screenW, screenH, false, GraphicsDevice.PresentationParameters.BackBufferFormat, DepthFormat.Depth24);
+                            GraphicsDevice.SetRenderTarget(screenshot);
+                            _draw();
+                            GraphicsDevice.SetRenderTarget(null);
+                            screenshot.SaveAsPng(new FileStream("screenie.png", FileMode.Create), screenW, screenH);
                         }
-                        else prtscNotPressed = true;
                         #endregion
                         // Allows the game to exit
-                        if (key.IsKeyDown(Keys.Escape))
+                        if (keyCurrent.IsKeyDown(Keys.Escape))
                             this.Exit();
 
                         camera.Pos += movement * 20;
@@ -243,11 +215,12 @@ namespace joc_cu_romani_si_barbari
 
                 case OPTIONS_MENU:
                     {
-                        optionsMenu.update(key, mouseStateCurrent);
+                        optionsMenu.update(keyCurrent, mouseStateCurrent);
                     }
                     break;
             }
             mouseStatePrevious = mouseStateCurrent;
+            keyPrevious = keyCurrent;
 
             musicPlayer.wazzap();//poke, poke (check that the music is still playing)
             base.Update(gameTime);

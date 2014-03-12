@@ -89,9 +89,9 @@ namespace joc_cu_romani_si_barbari
                     }
                     else
                         angle = (float)Math.Asin((float)(nextProv.armyY - crrtProv.armyY) / width);
-                    spriteBatch.Draw(pathBar, new Rectangle(crrtProv.armyX, crrtProv.armyY, (int)width, 31), null, Color.White, angle, new Vector2(0, 15), SpriteEffects.None, 0.8f);
+                    spriteBatch.Draw(pathBar, new Rectangle(crrtProv.armyX+32, crrtProv.armyY+32, (int)width, 31), null, Color.White, angle, new Vector2(0, 15), SpriteEffects.None, 0.8f);
                     //punem la capat si un punctulet care sa acopere imperfectiunile liniilor
-                    spriteBatch.Draw(dot, new Rectangle(nextProv.armyX-8, nextProv.armyY-8, 16, 16), null, Color.White, 0, Vector2.Zero, SpriteEffects.None, 0.81f);
+                    spriteBatch.Draw(dot, new Rectangle(nextProv.armyX+24, nextProv.armyY+24, 16, 16), null, Color.White, 0, Vector2.Zero, SpriteEffects.None, 0.81f);
                     crrtProv = nextProv;
                 }
             }
@@ -128,7 +128,6 @@ namespace joc_cu_romani_si_barbari
             {
                 case IN_GAME:
                     {
-                        makeMinimap();
                         _draw();
                     }
                     break;
@@ -139,7 +138,7 @@ namespace joc_cu_romani_si_barbari
                         spriteBatch.DrawString(font, "New Game", new Vector2(newGameRect.X, newGameRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                         spriteBatch.DrawString(font, "Options", new Vector2(optionsRect.X, optionsRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                         spriteBatch.DrawString(font, "Quit", new Vector2(quitRect.X, quitRect.Y), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                        spriteBatch.DrawString(font, "v 0.02b", new Vector2((int)(screenW * 0.9), (int)(screenH * 0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+                        spriteBatch.DrawString(font, Game.version, new Vector2((int)(screenW * 0.9), (int)(screenH * 0.9)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                         spriteBatch.End();
                     }
                     break;

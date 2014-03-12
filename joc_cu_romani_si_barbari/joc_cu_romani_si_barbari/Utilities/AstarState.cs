@@ -67,12 +67,10 @@ namespace joc_cu_romani_si_barbari.Utilities
                 open.Remove(open.Min);
                 if (state.prov.equals(end))
                 {
-                    //printReversePath(state);
                     List<Province> path = new List<Province>();
                     while (state.parent != null)
                     {
                         path.Add(state.prov);
-                        Console.WriteLine(state.prov);
                         state = state.parent;
                     }
                     path.Reverse();
