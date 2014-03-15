@@ -14,13 +14,10 @@ namespace joc_cu_romani_si_barbari
         internal Province crrtProv;
         internal List<Province> path = new List<Province>();
         internal String name;
-        internal int distToNextProv;
+        internal int distToMarch;
         internal Rectangle iconLocation;//the rectangle defining the coordinates where the army's icon will be drawn
 
-        internal byte state;//one of the following statics:
-        public const byte IN_FRIENDLY_PROVINCE = 0;
-        public const byte ON_BORDER = 1;
-        public const byte IN_ENEMY_PROVINCE = 2;
+        internal byte state;//check ArmyState
 
         internal float borderStance;//the agressiveness of the army's assault on the border
         public const float BYPASS = (float) 0.1;
@@ -40,7 +37,7 @@ namespace joc_cu_romani_si_barbari
             this.owner = owner;
             crrtProv = crrt;
             iconLocation = new Rectangle(crrt.armyX, crrt.armyY, 64, 64);
-            state = IN_FRIENDLY_PROVINCE;
+            state = ArmyState.IN_FRIENDLY_PROVINCE;
             borderStance = NORMAL;
         }
     
@@ -61,12 +58,17 @@ namespace joc_cu_romani_si_barbari
             if (path == null) return;//se poate sa dau o destinatie invalida, sau destination == crrtProv
             //gasesc granita catre care merg - am nevoie de ea pt distanta, coord de afisare armata, si sa
             //verific apararile nextProv
+            goToNextProvInPath();
+        }
+
+        public void goToNextProvInPath()
+        {
             Province nextProv = path[0];
             foreach (Neighbor neigh in crrtProv.neighbors)
             {
                 if (neigh.otherProv == nextProv)//this is the border we're looking for
                 {
-                    distToNextProv = neigh.distance;
+                    distToMarch = neigh.distance;
                     targetBorder = neigh;
                     return;
                 }
@@ -74,17 +76,23 @@ namespace joc_cu_romani_si_barbari
         }
 
         /// <summary>
-        /// The function advances the army by one day's worth of marching.
+        /// On entering a province, ther army's location is updated to the other side of the border
+        /// in addition, we must update distToNextProv to be the distance to the center of the province
+        /// and we must eliminate this province from the path
         /// </summary>
-        public void march()
-        {//first, update the distToNext
-            distToNextProv -= 10;//fixed distance -- perhaps later take army speed into account
-            if (distToNextProv < 0) distToNextProv = 0;
-            //then, reposition the army's icon so that it reflects the progress made
-            //the cast is neccessary, because otherwise the compiler would interpret it as a division between integers => an integer result
-            //float progress = 1.0f - ((float)distToNext / (float)target.distance);
-            //iconLocation.X = (int)(prevX + (target.armyX - prevX) * progress);
-            //iconLocation.Y = (int)(prevY + (target.armyY - prevY) * progress);
+        public void provinceEntered()
+        {
+            Neighbor aux = targetBorder.otherSide;//otherSide is where we're at
+            crrtProv.armies.Remove(this);//leave the army list of the previous provicne
+            crrtProv = targetBorder.otherProv;
+            crrtProv.armies.Add(this);//and enter the army list of the new province
+            iconLocation.X = aux.armyX;
+            iconLocation.Y = aux.armyY;
+            distToMarch = aux.distance;
+            targetBorder = null;//we're marching towards the center of a province, not towards a border
+            path.RemoveAt(0);
+            if (path.Count == 0)
+                path = null;
         }
     
         /// <summary>
@@ -144,5 +152,12 @@ namespace joc_cu_romani_si_barbari
                     units.RemoveAt(i);
             }
         }
+    }
+
+    class ArmyState
+    {
+        public const byte IN_FRIENDLY_PROVINCE = 0;
+        public const byte ON_BORDER = 1;
+        public const byte IN_ENEMY_PROVINCE = 2;
     }
 }

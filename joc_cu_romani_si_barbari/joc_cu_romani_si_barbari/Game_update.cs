@@ -130,52 +130,66 @@ namespace joc_cu_romani_si_barbari
                         {
                             timeBetweenDays = new TimeSpan(0);
                             //cycle through each army
-                            /*foreach (Nation nation in nations)
+                            foreach (Nation nation in nations)
                             {
                                 foreach (Army army in nation.armies)
                                 {
-                                    if (army.isOnBorder)
+                                    if (army.state == ArmyState.ON_BORDER)
                                     {
-                                        if (army.nextProvIsFriendly() || !army.targetBorder.hasDefenders())
+                                        if (army.nextProvIsFriendly())
                                         {//the border is crossed efortlessly
-                                            army.isOnBorder = false;
-                                            army.crrtProv = army.nextProv;
-                                            army.iconLocation.X = army.crrtProv.armyX;
-                                            army.iconLocation.Y = army.crrtProv.armyY;
+                                            army.state = ArmyState.IN_FRIENDLY_PROVINCE;
+                                            army.provinceEntered();
+                                        }
+                                        else if (!army.targetBorder.otherSide.hasDefenders())
+                                        {//the border is crossed efortlessly
+                                            army.state = ArmyState.IN_ENEMY_PROVINCE;
+                                            army.provinceEntered();
                                         }
                                         else
                                         {//we must breach the border
-                                            Neighbor border = army.targetBorder;
+                                            Neighbor border = army.targetBorder.otherSide;
                                             double dmg1 = border.getDamage();
                                             double dmg2 = army.getAssaultDamage(border.hasDefenses());
                                             border.eatDamage(dmg1);
                                             army.eatAssaultDamage(dmg2, border.hasDefenses());
-                                            double ch = Math.Min(95, Math.Min(5, ((1-army.borderStance)*20 - border.getDefenseRating() * border.coverage()) * 5));
-                                            Console.WriteLine(dmg1+" "+dmg2+" "+ch);
+                                            //the chance to breach the border depends on the army's stance, the saturation of the border with defenders
+                                            //and the defensive strength of the border
+                                            double ch = (1 - army.borderStance) * 100 - border.getDefenseRating() * border.coverage();
+                                            //Console.WriteLine(1 - army.borderStance + " " + border.coverage() + " " + border.getDefenseRating());
+                                            Console.WriteLine(dmg1 + " " + dmg2 + " " + ch);
                                             if (rand.Next(100) < ch)//the border is breached
                                             {
-                                                army.isOnBorder = false;
-                                                army.crrtProv = army.nextProv;
-                                                army.iconLocation.X = army.crrtProv.armyX;
-                                                army.iconLocation.Y = army.crrtProv.armyY;
+                                                army.state = ArmyState.IN_ENEMY_PROVINCE;
+                                                army.provinceEntered();
                                             }
                                         }
                                     }
-                                    if (army.nextProv != army.crrtProv)//inseamna ca ma duc undeva
+                                    else //I am in a province
+                                    if (army.distToMarch != 0)//inseamna ca ma duc undeva
                                     {
-                                        if (army.distToNext == 0)//we have arrived at the border with the next province
-                                        {//effects to be refined
-                                            //army.crrtProv = army.nextProv;
-                                            army.iconLocation.X = army.targetBorder.armyX;
-                                            army.iconLocation.Y = army.targetBorder.armyY;
-                                            army.isOnBorder = true;
+                                        army.distToMarch -= 100;//TODO : vary the mvmnt speed
+                                        if (army.distToMarch <= 0)//we have arrived at the border with the next province
+                                        {
+                                            if (army.targetBorder == null) //the army has reached the ctr of the prov
+                                            {//if path continues, then select next targetBorder
+                                                if (army.path != null)
+                                                    army.goToNextProvInPath();
+                                                //regardless, change position to be center of prov
+                                                army.iconLocation.X = army.crrtProv.armyX;
+                                                army.iconLocation.Y = army.crrtProv.armyY;
+                                            }
+                                            else //the army has reached the target border
+                                            {
+                                                army.iconLocation.X = army.targetBorder.armyX;
+                                                army.iconLocation.Y = army.targetBorder.armyY;
+                                                army.state = ArmyState.ON_BORDER;
+                                            }
                                         }
-                                        army.march();
                                     }
                                 }
-                            }*/
+                            }
                             date.next();
-                            //Console.WriteLine("A day has passed!");
                         }
                         #endregion
                     }

@@ -102,7 +102,7 @@ namespace joc_cu_romani_si_barbari
         }
 
         /// <summary>
-        /// The function returns a factor representing the ratio of troops to border length
+        /// The function returns the nr of men per kilometer of border
         /// </summary>
         public double coverage()
         {
@@ -110,7 +110,7 @@ namespace joc_cu_romani_si_barbari
             int n = defUnits.Count;
             for (int i = 0; i < n; i++)
                 size += defUnits[i].size;
-            return size / (double)(borderLength * 100);
+            return size / (double)(borderLength);
         }
     }
 }

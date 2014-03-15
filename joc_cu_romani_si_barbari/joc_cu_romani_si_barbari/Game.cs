@@ -19,7 +19,7 @@ namespace joc_cu_romani_si_barbari
     public partial class Game : Microsoft.Xna.Framework.Game
     {
         #region Variable declarations
-        public const string version = "v 0.03";
+        public const string version = "v 0.04";
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
 
