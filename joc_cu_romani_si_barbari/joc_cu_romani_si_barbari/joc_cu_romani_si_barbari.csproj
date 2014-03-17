@@ -96,6 +96,7 @@
     <Compile Include="UnitStats.cs" />
     <Compile Include="Utilities\MusicPlayer.cs" />
     <Compile Include="Utilities\SliderComponent.cs" />
+    <Compile Include="Utilities\TextArea.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Game.ico" />

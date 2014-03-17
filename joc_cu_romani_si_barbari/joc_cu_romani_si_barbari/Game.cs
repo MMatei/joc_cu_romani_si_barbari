@@ -19,7 +19,7 @@ namespace joc_cu_romani_si_barbari
     public partial class Game : Microsoft.Xna.Framework.Game
     {
         #region Variable declarations
-        public const string version = "v 0.04";
+        public const string version = "v 0.04b";
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
 
@@ -56,6 +56,9 @@ namespace joc_cu_romani_si_barbari
         private Rectangle newGameRect, optionsRect, quitRect;
         internal Texture2D mainMenuTexture;
         private OptionsMenu optionsMenu;
+
+        //GUI helpers
+        private Utilities.TextArea textArea;
 
         // other stuff
         private bool isActive;//if I alt-Tab, then the game deactivates and no longer responds to input
@@ -225,6 +228,9 @@ namespace joc_cu_romani_si_barbari
             List<Song> music = new List<Song>();
             music.Add(Content.Load<Song>("Caesar 3 Soundtrack - Victory"));
             musicPlayer.newPlaylist(music);
+
+            // Initialize GUI helpers
+            textArea = new Utilities.TextArea(font, new Vector2((int)(screenW * 0.1), (int)(screenH * 0.85)), spriteBatch);
         }
 
         /// <summary>

@@ -57,7 +57,10 @@ namespace joc_cu_romani_si_barbari
                                 }
                             }
                             if (armySelected)
+                            {
+                                prevSelectedProv = null;
                                 clickSFX.Play();
+                            }
                             else
                             {
                                 p.setSelected();
