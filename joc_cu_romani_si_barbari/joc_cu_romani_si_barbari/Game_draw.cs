@@ -106,21 +106,33 @@ namespace joc_cu_romani_si_barbari
             {
                 spriteBatch.DrawString(font, prevSelectedProv.name + "", new Vector2((int)(screenW * 0.1), (int)(screenH * 0.75)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                 spriteBatch.DrawString(font, "Prosperity: " + prevSelectedProv.prosperity + "", new Vector2((int)(screenW * 0.1), (int)(screenH * 0.8)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                String text = "Stationed armies: ";
+                String text = "Stationed armies\n";
                 prevSelectedProv.armies.ForEach(delegate(Army army)
                 {
                     text += army.name + "\n";
                 });
-                textArea.draw(text);
+                armiesInProvTextArea.draw(text);
+                text = "Adjacent provinces\n";
+                String text2 = "Distance\n";
+                String text3 = "Border Length\n";
+                foreach (Neighbor neigh in prevSelectedProv.neighbors)
+                {
+                    text += neigh.otherProv.name + "\n";
+                    text2 += neigh.distance + "km\n";
+                    text3 += neigh.borderLength + "km\n";
+                }
+                neighborsTextArea.draw(text);
+                neighDistancesTextArea.draw(text2);
+                neighBorderLengthTextArea.draw(text3);
             }
             if (selectedArmies.Count > 0)
             {
-                String text = "Selected armies: ";
+                String text = "Selected armies\n";
                 foreach (Army army in selectedArmies)
                 {
                     text += army.name + "\n";
                 }
-                textArea.draw(text);
+                armiesSelectedTextArea.draw(text);
             }
             spriteBatch.DrawString(font, nations[player].money + "", new Vector2((int)(screenW * 0.775) , (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(font, date.ToString(), new Vector2((int)(screenW * 0.9), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
