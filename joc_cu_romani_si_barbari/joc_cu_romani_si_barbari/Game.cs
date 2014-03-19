@@ -58,8 +58,7 @@ namespace joc_cu_romani_si_barbari
         private OptionsMenu optionsMenu;
 
         //GUI helpers
-        private Utilities.TextArea armiesInProvTextArea, neighborsTextArea, neighDistancesTextArea, neighBorderLengthTextArea,
-            armiesSelectedTextArea;
+        private Utilities.TextArea armiesInProvTextArea, neighborsTextArea, armiesSelectedTextArea;
 
         // other stuff
         private bool isActive;//if I alt-Tab, then the game deactivates and no longer responds to input
@@ -231,11 +230,18 @@ namespace joc_cu_romani_si_barbari
             musicPlayer.newPlaylist(music);
 
             // Initialize GUI helpers
-            armiesInProvTextArea = new Utilities.TextArea(font, new Vector2((int)(screenW * 0.1), (int)(screenH * 0.85)), spriteBatch);
-            armiesSelectedTextArea = new Utilities.TextArea(font, new Vector2((int)(screenW * 0.1), (int)(screenH * 0.75)), spriteBatch);
-            neighborsTextArea = new Utilities.TextArea(font, new Vector2((int)(screenW * 0.5), (int)(screenH * 0.75)), spriteBatch);
-            neighDistancesTextArea = new Utilities.TextArea(font, new Vector2((int)(screenW * 0.65), (int)(screenH * 0.75)), spriteBatch);
-            neighBorderLengthTextArea = new Utilities.TextArea(font, new Vector2((int)(screenW * 0.71), (int)(screenH * 0.75)), spriteBatch);
+            FileStream fs = new FileStream("graphics/handlebar.png", FileMode.Open);
+            Texture2D handleBar = Texture2D.FromStream(GraphicsDevice, fs);
+            fs.Close();
+            fs = new FileStream("graphics/upArrow.png", FileMode.Open);
+            Texture2D upArrow = Texture2D.FromStream(GraphicsDevice, fs);
+            fs.Close();
+            fs = new FileStream("graphics/downArrow.png", FileMode.Open);
+            Texture2D downArrow = Texture2D.FromStream(GraphicsDevice, fs);
+            fs.Close();
+            armiesInProvTextArea = new Utilities.TextArea(GraphicsDevice, spriteBatch, font, (int)(screenW * 0.1), (int)(screenH * 0.85), (int)(screenW * 0.3), (int)(screenH * 0.1), handleBar, upArrow, downArrow);
+            armiesSelectedTextArea = new Utilities.TextArea(GraphicsDevice, spriteBatch, font, (int)(screenW * 0.1), (int)(screenH * 0.75), (int)(screenW * 0.3), (int)(screenH * 0.2), handleBar, upArrow, downArrow);
+            neighborsTextArea = new Utilities.TextArea(GraphicsDevice, spriteBatch, font, (int)(screenW * 0.5), (int)(screenH * 0.75), 3, (int)(screenW * 0.4), (int)(screenH * 0.2), handleBar, upArrow, downArrow);
         }
 
         /// <summary>

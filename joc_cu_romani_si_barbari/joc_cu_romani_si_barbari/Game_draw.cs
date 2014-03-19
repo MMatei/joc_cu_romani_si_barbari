@@ -51,6 +51,39 @@ namespace joc_cu_romani_si_barbari
         //Draw the world map to screen, along with the UI
         private void _draw()
         {
+            // In order to properly render TextArea 's, I had to resort to a little trick which involves rendering to textures
+            // Due to the way XNA works, ALL rendering to texture must be done BEFORE rendering to the screen
+            // Hence, we render the TextArea 's here; the field textArea will contain the texture we need to draw
+            if (prevSelectedProv != null)
+            {
+                String text = "Stationed armies\n";
+                prevSelectedProv.armies.ForEach(delegate(Army army)
+                {
+                    text += army.name + "\n";
+                });
+                armiesInProvTextArea.draw(text);
+                String[] txt = new String[3];
+                txt[0] = "Adjacent provinces\n";
+                txt[1] = "Distance\n";
+                txt[2] = "Border Length\n";
+                foreach (Neighbor neigh in prevSelectedProv.neighbors)
+                {
+                    txt[0] += neigh.otherProv.name + "\n";
+                    txt[1] += neigh.distance + "km\n";
+                    txt[2] += neigh.borderLength + "km\n";
+                }
+                neighborsTextArea.draw(txt);
+            }
+            if (selectedArmies.Count > 0)
+            {
+                String text = "Selected armies\n";
+                foreach (Army army in selectedArmies)
+                {
+                    text += army.name + "\n";
+                }
+                armiesSelectedTextArea.draw(text);
+            }
+
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, null, null, null, null, camera.GetTransformation());
             spriteBatch.Draw(provinces[0].background, provinces[0].position, null, provinces[0].color, 0.0f, Vector2.Zero, SpriteEffects.None, 0.0f);
             for (int i = 1; i < provinces.Length; i++)
@@ -98,44 +131,23 @@ namespace joc_cu_romani_si_barbari
             spriteBatch.End();
 
             //desenam elementele statice in raport cu camera (adica nu sunt afectate de ViewMatrix-ul camerei)
-            spriteBatch.Begin();
-            spriteBatch.Draw(uiProvinceDetailTexture, uiProvinceDetailRect, null, Color.White, 0.0f,Vector2.Zero, SpriteEffects.None, 1.0f);
+            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, null, null, null);
+            spriteBatch.Draw(uiProvinceDetailTexture, uiProvinceDetailRect, null, Color.White, 0.0f,Vector2.Zero, SpriteEffects.None, 0.95f);
             spriteBatch.Draw(coin, new Rectangle((int)(screenW * 0.75), (int)(screenH * 0.7), 30, 30), null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             spriteBatch.DrawString(font, "Imperial Ledger", new Vector2((int)(screenW * 0.48), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, nations[player].money + "", new Vector2((int)(screenW * 0.775), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
+            spriteBatch.DrawString(font, date.ToString(), new Vector2((int)(screenW * 0.9), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             if (prevSelectedProv != null)
             {
                 spriteBatch.DrawString(font, prevSelectedProv.name + "", new Vector2((int)(screenW * 0.1), (int)(screenH * 0.75)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
                 spriteBatch.DrawString(font, "Prosperity: " + prevSelectedProv.prosperity + "", new Vector2((int)(screenW * 0.1), (int)(screenH * 0.8)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-                String text = "Stationed armies\n";
-                prevSelectedProv.armies.ForEach(delegate(Army army)
-                {
-                    text += army.name + "\n";
-                });
-                armiesInProvTextArea.draw(text);
-                text = "Adjacent provinces\n";
-                String text2 = "Distance\n";
-                String text3 = "Border Length\n";
-                foreach (Neighbor neigh in prevSelectedProv.neighbors)
-                {
-                    text += neigh.otherProv.name + "\n";
-                    text2 += neigh.distance + "km\n";
-                    text3 += neigh.borderLength + "km\n";
-                }
-                neighborsTextArea.draw(text);
-                neighDistancesTextArea.draw(text2);
-                neighBorderLengthTextArea.draw(text3);
+                spriteBatch.Draw(armiesInProvTextArea.textArea, armiesInProvTextArea.textAreaRect, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
+                spriteBatch.Draw(neighborsTextArea.textArea, neighborsTextArea.textAreaRect, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             }
             if (selectedArmies.Count > 0)
             {
-                String text = "Selected armies\n";
-                foreach (Army army in selectedArmies)
-                {
-                    text += army.name + "\n";
-                }
-                armiesSelectedTextArea.draw(text);
+                spriteBatch.Draw(armiesSelectedTextArea.textArea, armiesSelectedTextArea.textAreaRect, null, Color.White, 0.0f, Vector2.Zero, SpriteEffects.None, 1.0f);
             }
-            spriteBatch.DrawString(font, nations[player].money + "", new Vector2((int)(screenW * 0.775) , (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
-            spriteBatch.DrawString(font, date.ToString(), new Vector2((int)(screenW * 0.9), (int)(screenH * 0.7)), Color.Black, 0.0f, Vector2.Zero, 1.0f, SpriteEffects.None, 1.0f);
             spriteBatch.End();
         }
         /// <summary>
