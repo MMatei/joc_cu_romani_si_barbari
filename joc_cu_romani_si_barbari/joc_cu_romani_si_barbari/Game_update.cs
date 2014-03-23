@@ -34,50 +34,78 @@ namespace joc_cu_romani_si_barbari
                         #region Responding to input
                         Vector2 movement = Vector2.Zero;
 
-                        if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
-                        {//we've clicked on something
-                            if (prevSelectedProv != null)//first we clear old selections
-                                prevSelectedProv.setDeselected();
-                            selectedArmies.Clear();
-                            //then we compute our coordinates factoring in zoom level
-                            Vector2 q1 = new Vector2();
-                            Vector2 q2 = new Vector2();
-                            q1.X = mouseStateCurrent.X;
-                            q1.Y = mouseStateCurrent.Y;
-                            q2 = camera.ScreenToWorld(q1);
-                            Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];//then use the mapMatrix to deduce on which province we clicked
-                            //check if we've clicked on an army
-                            bool armySelected = false;
-                            foreach (Army army in p.armies)
-                            {
-                                if (army.iconLocation.Contains((int)q2.X, (int)q2.Y))
+                        if (!uiProvinceDetailRect.Contains(mouseStateCurrent.X, mouseStateCurrent.Y))
+                        {//only register province selection if the button press happens outside the details scroll
+                            if (mouseStateCurrent.LeftButton == ButtonState.Pressed && mouseStatePrevious.LeftButton == ButtonState.Released)
+                            {//we've clicked on something
+                                if (prevSelectedProv != null)//first we clear old selections
+                                    prevSelectedProv.setDeselected();
+                                selectedArmies.Clear();
+                                //then we compute our coordinates factoring in zoom level
+                                Vector2 q1 = new Vector2();
+                                Vector2 q2 = new Vector2();
+                                q1.X = mouseStateCurrent.X;
+                                q1.Y = mouseStateCurrent.Y;
+                                q2 = camera.ScreenToWorld(q1);
+                                Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];//then use the mapMatrix to deduce on which province we clicked
+                                //check if we've clicked on an army
+                                bool armySelected = false;
+                                foreach (Army army in p.armies)
                                 {
-                                    selectedArmies.Add(army);
-                                    armySelected = true;
+                                    if (army.iconLocation.Contains((int)q2.X, (int)q2.Y))
+                                    {
+                                        selectedArmies.Add(army);
+                                        armySelected = true;
+                                    }
+                                }
+                                if (armySelected)
+                                {
+                                    prevSelectedProv = null;
+                                    clickSFX.Play();
+                                    //am selectat armate => afisare corespunzatoare pe pergament => trebuie setat textul corespunzator
+                                    String text = "Selected armies\n";
+                                    foreach (Army army in selectedArmies)
+                                    {
+                                        text += army.name + "\n";
+                                    }
+                                    armiesSelectedTextArea.setText(text);
+                                }
+                                else
+                                {
+                                    p.setSelected();
+                                    prevSelectedProv = p;
+                                    //am selectat prov => trebuie afisate zone de text pe pergament => trebuie setat textul pt ele
+                                    String text = "Stationed armies\n";
+                                    prevSelectedProv.armies.ForEach(delegate(Army army)
+                                    {
+                                        text += army.name + "\n";
+                                    });
+                                    armiesInProvTextArea.setText(text);
+                                    String[] txt = new String[3];
+                                    txt[0] = "Adjacent provinces\n";
+                                    txt[1] = "Distance\n";
+                                    txt[2] = "Border Length\n";
+                                    foreach (Neighbor neigh in prevSelectedProv.neighbors)
+                                    {
+                                        txt[0] += neigh.otherProv.name + "\n";
+                                        txt[1] += neigh.distance + "km\n";
+                                        txt[2] += neigh.borderLength + "km\n";
+                                    }
+                                    neighborsTextArea.setText(txt);
                                 }
                             }
-                            if (armySelected)
-                            {
-                                prevSelectedProv = null;
-                                clickSFX.Play();
-                            }
-                            else
-                            {
-                                p.setSelected();
-                                prevSelectedProv = p;
-                            }
-                        }
-                        if (mouseStateCurrent.RightButton == ButtonState.Pressed && mouseStatePrevious.RightButton == ButtonState.Released)
-                        {//order all selected armies to the indicated province
-                            Vector2 q1 = new Vector2();
-                            Vector2 q2 = new Vector2();
-                            q1.X = mouseStateCurrent.X;
-                            q1.Y = mouseStateCurrent.Y;
-                            q2 = camera.ScreenToWorld(q1);
-                            Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];
-                            foreach (Army army in selectedArmies)
-                            {
-                                army.goTo(p);
+                            if (mouseStateCurrent.RightButton == ButtonState.Pressed && mouseStatePrevious.RightButton == ButtonState.Released)
+                            {//order all selected armies to the indicated province
+                                Vector2 q1 = new Vector2();
+                                Vector2 q2 = new Vector2();
+                                q1.X = mouseStateCurrent.X;
+                                q1.Y = mouseStateCurrent.Y;
+                                q2 = camera.ScreenToWorld(q1);
+                                Province p = provinces[mapMatrix[(int)q2.Y, (int)q2.X]];
+                                foreach (Army army in selectedArmies)
+                                {
+                                    army.goTo(p);
+                                }
                             }
                         }
 
@@ -126,6 +154,10 @@ namespace joc_cu_romani_si_barbari
 
                         camera.Pos += movement * 20;
                         #endregion
+
+                        armiesInProvTextArea.update(mouseStateCurrent);
+                        neighborsTextArea.update(mouseStateCurrent);
+                        armiesSelectedTextArea.update(mouseStateCurrent);
 
                         #region Game Update
                         timeBetweenDays = timeBetweenDays.Add(gameTime.ElapsedGameTime);

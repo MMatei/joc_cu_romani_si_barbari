@@ -56,32 +56,12 @@ namespace joc_cu_romani_si_barbari
             // Hence, we render the TextArea 's here; the field textArea will contain the texture we need to draw
             if (prevSelectedProv != null)
             {
-                String text = "Stationed armies\n";
-                prevSelectedProv.armies.ForEach(delegate(Army army)
-                {
-                    text += army.name + "\n";
-                });
-                armiesInProvTextArea.draw(text);
-                String[] txt = new String[3];
-                txt[0] = "Adjacent provinces\n";
-                txt[1] = "Distance\n";
-                txt[2] = "Border Length\n";
-                foreach (Neighbor neigh in prevSelectedProv.neighbors)
-                {
-                    txt[0] += neigh.otherProv.name + "\n";
-                    txt[1] += neigh.distance + "km\n";
-                    txt[2] += neigh.borderLength + "km\n";
-                }
-                neighborsTextArea.draw(txt);
+                armiesInProvTextArea.draw();
+                neighborsTextArea.draw();
             }
             if (selectedArmies.Count > 0)
             {
-                String text = "Selected armies\n";
-                foreach (Army army in selectedArmies)
-                {
-                    text += army.name + "\n";
-                }
-                armiesSelectedTextArea.draw(text);
+                armiesSelectedTextArea.draw();
             }
 
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, null, null, null, null, camera.GetTransformation());
