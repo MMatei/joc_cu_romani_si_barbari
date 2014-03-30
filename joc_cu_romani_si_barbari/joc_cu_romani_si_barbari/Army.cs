@@ -14,7 +14,7 @@ namespace joc_cu_romani_si_barbari
         internal Province crrtProv;
         internal List<Province> path = new List<Province>();
         internal String name;
-        internal int distToMarch;
+        internal int distToMarch,leeeeeeroy;
         internal Rectangle iconLocation;//the rectangle defining the coordinates where the army's icon will be drawn
 
         internal byte state;//check ArmyState
